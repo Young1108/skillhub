@@ -1,10 +1,16 @@
-# wechat-skills
+# skillhub — WorkBuddy Skill 工具集
 
-微信本地聊天数据提取与分析工具集，涵盖**个人微信**与**企业微信**，共 5 个互补的 Skill。支持 [WorkBuddy](https://www.codebuddy.cn/)、[Codex](https://openai.com/index/introducing-codex/)、[Claude Code](https://claude.ai/code) 等支持 Skill 机制的 AI Agent 安装使用。
+WorkBuddy 实用 Skill 集合：**账号迁移**（切账号后数据一键恢复）与**微信本地聊天数据提取与分析**（个人微信 Mac 4.x / 企业微信 Mac 5.x）。支持 [WorkBuddy](https://www.codebuddy.cn/)、[Codex](https://openai.com/index/introducing-codex/)、[Claude Code](https://claude.ai/code) 等支持 Skill 机制的 AI Agent 安装使用。
 
-> ⚠️ **本仓库仅适用于 macOS**。Windows 用户请阅读 [Windows 用户说明](#windows-用户说明)。
+> ⚠️ **微信相关 Skill 仅适用于 macOS**。Windows 用户请阅读 [Windows 用户说明](#windows-用户说明)。
 
 ## Skill 列表
+
+### 账号管理
+
+| Skill | 定位 | 来源 |
+|-------|------|------|
+| **account-migrate** | 账号切换后数据合并：Session 对话记录 / Memory 长期记忆 / Connector 配置一键迁移到当前账号 | 原创（v1.5.0） |
 
 ### 个人微信（Mac 4.x）
 
@@ -99,8 +105,9 @@ yichen-wecom-local-vault (基础层)
 ```bash
 git clone https://github.com/Young1108/wechat-skills.git /tmp/wechat-skills
 mkdir -p ~/.workbuddy/skills
-cp -r /tmp/wechat-skills/* ~/.workbuddy/skills/  # 复制全部 5 个 skill
+cp -r /tmp/wechat-skills/* ~/.workbuddy/skills/  # 复制全部 skill
 # 或按需复制：
+# cp -r /tmp/wechat-skills/account-migrate ~/.workbuddy/skills/
 # cp -r /tmp/wechat-skills/yichen-wechat-local-vault ~/.workbuddy/skills/
 # cp -r /tmp/wechat-skills/wechat-local-vault-ops ~/.workbuddy/skills/
 # cp -r /tmp/wechat-skills/wechat-chat-extractor ~/.workbuddy/skills/
@@ -155,6 +162,22 @@ python3 "$SKILL_DIR/scripts/wecom_pro.py" status
 ```
 
 ## 使用
+
+### account-migrate — 账号迁移
+
+切换 WorkBuddy 账号后，对话记录/记忆/连接器消失时使用。**零依赖**（Python 3.8+），无需安装任何包。
+
+```bash
+# 交互式向导（推荐）：先选目标账号，再选源账号
+python3 ~/.workbuddy/skills/account-migrate/scripts/migrate.py
+
+# 仅诊断，查看所有账号数据分布
+python3 ~/.workbuddy/skills/account-migrate/scripts/migrate.py --diagnose
+
+# 迁移后必须重启 WorkBuddy 客户端生效
+```
+
+在 AI Agent 对话中直接说 **「迁移账号数据」** / **「切账号后记录丢了」** 也会自动触发本 Skill。详细文档见 [account-migrate/README.md](account-migrate/README.md)。
 
 ### 在 AI Agent 中使用
 
