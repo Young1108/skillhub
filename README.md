@@ -20,6 +20,79 @@ WorkBuddy 实用 Skill 集合：**账号迁移**（切账号后数据一键恢�
 | **wechat-local-vault-ops** | 运维手册：部署流程、首次抓 key 实战坑、日常运维 | 原创 |
 | **wechat-chat-extractor** | 增强工具：结构化 Markdown 导出、HTML 可视化报告、一键分析 | 原创（参照 wecom-chat-extractor 模式） |
 
+## account-migrate — 账号迁移 Skill 详解
+
+> WorkBuddy 切换账号后对话记录不见了？一键恢复。**零依赖**（Python 3.8+），macOS 实测，支持 WorkBuddy / Codex / Claude Code。
+
+### 你是不是遇到了这个问题？
+
+WorkBuddy 切换账号 / 重新登录 / 换了腾讯云身份后，**之前的对话记录全没了**？长期记忆、MCP 连接器配置也看不到了？
+
+**数据其实没丢**——它们还在磁盘上，只是 WorkBuddy 用 `user_id` 做了账号隔离，新账号的 UI 看不到旧账号的数据。本工具一键把旧账号的数据合并到当前登录账号，**对话记录、记忆、连接器全部恢复可见**。
+
+### 功能特性
+
+| 特性 | 说明 |
+|---|---|
+| ✅ 交互式向导 | 运行即用，先选【目标账号】再选【源账号】，无需知道 user_id，从根本上避免迁移方向搞反 |
+| ✅ 跨平台路径适配 | storage.json 路径自动适配 macOS / Windows / Linux |
+| ✅ Session 对话记录迁移 | 修改 SQLite 数据库中的 `user_id` 字段，对话记录全部回归 |
+| ✅ Memory 长期记忆合并 | 追加式去重合并，不会丢失当前账号已有记忆 |
+| ✅ Connector MCP 连接器合并 | JSON 深度合并，目标账号已有配置保留不动 |
+| ✅ 自动备份 + 回滚 | 迁移前自动备份数据库、记忆、连接器，支持一键回滚 |
+| ✅ WAL 安全处理 | 迁移前后执行 SQLite checkpoint，确保数据持久化 |
+| ✅ 迁移方向自检（v1.5） | 手动执行 SQL 时必须核对 target 持有当前会话、source 持有大部分历史，防止方向反了 |
+| ✅ 自动化任务归属处理（v1.5） | automations 表有 `owner_user_id`，任务面板的会话记录依赖 session 归属，迁移 sessions 时自动一并修复 |
+| ✅ 迁移结果验证 | UPDATE 后验证源 user_id 归零，确认迁移成功 |
+| ✅ 零依赖 | 仅需 Python 3.8+，无第三方包 |
+
+### 快速开始
+
+```bash
+git clone https://github.com/Young1108/skillhub.git /tmp/skillhub
+mkdir -p ~/.workbuddy/skills
+cp -r /tmp/skillhub/account-migrate ~/.workbuddy/skills/
+# 重启 WorkBuddy 后，对话中说「迁移账号数据」即可触发
+
+# 或命令行直接跑（推荐，最直观）
+cd ~/.workbuddy/skills/account-migrate
+python3 scripts/migrate.py        # 交互式向导：先选目标账号，再选源账号
+python3 scripts/migrate.py --diagnose                       # 仅诊断，查看所有账号数据分布
+python3 scripts/migrate.py --source <USER_ID>               # 指定源账号
+python3 scripts/migrate.py --source <USER_ID> --target <USER_ID>  # 显式指定目标账号
+python3 scripts/migrate.py --rollback <TAG>                 # 回滚到指定备份
+```
+
+### 迁移内容
+
+| 数据类型 | 存储位置 | 隔离方式 | 是否迁移 | 迁移策略 |
+|---|---|---|---|---|
+| Session 对话记录 | `workbuddy.db` sessions 表 | `user_id` 字段 | ✅ | UPDATE user_id |
+| 长期记忆 Memory | `~/.workbuddy/memory/{uid}_memory.md` | 按文件名 | ✅ | 追加去重合并 |
+| Connector 连接器配置 | `~/.workbuddy/connectors/{uid}/mcp.json` | 按子目录 | ✅ | JSON 深度合并 |
+| 自动化任务归属 | `workbuddy.db` automations 表 | `owner_user_id` 字段 | ✅ | UPDATE owner_user_id（如任务归属旧账号） |
+| 自动化运行会话 | `workbuddy.db` sessions 表（`is_background_automation=1`） | `user_id` 字段 | ✅ | 随 Session 一并 UPDATE，否则任务面板「会话记录」为空 |
+| Skills 技能 | `~/.workbuddy/skills/` | 无隔离 | ❌ | 全局共享，无需迁移 |
+| Settings / MCP / Plugins | 全局配置文件 | 无隔离 | ❌ | 全局共享，无需迁移 |
+
+> ⚠️ **易踩坑点（v1.5 已修复）**：`automation_runs` 表的 `conversationId` 指向 sessions 表中的一条记录（`is_background_automation=1`）。任务面板按当前登录账号的 user_id 过滤 session，**如果只迁移普通会话而漏掉自动化会话，会出现「任务在、但任务面板会话记录为空」**。整体 UPDATE sessions 时会自动覆盖，无需单独处理。
+
+### 工作原理
+
+1. **自动诊断** — 从数据库、Memory 文件、Connector 目录三个来源自动发现所有账号。当前登录账号以 **storage.json 的 genie.userId 为权威来源**，DB 作为辅助验证，不一致时发出警告
+2. **安全备份** — 迁移前自动备份到 `~/.workbuddy/migrate_backups/{timestamp}_{uid}/`
+3. **执行迁移** — Session 用 `UPDATE user_id`，Memory 逐行去重追加，Connector JSON 深度合并
+4. **持久化 + 验证** — 迁移后执行 WAL checkpoint 确保数据落盘，验证源 user_id 归零
+5. **重启提示** — 提示重启 WorkBuddy 客户端，UI 刷新缓存后数据可见
+
+**迁移方向自检（v1.5 关键新增）**：历史上发生过迁移方向反了的真实事故（源/目标互换，导致历史会话留在旧账号、任务面板会话记录全部消失）。交互式向导强制先选目标、再选源，天然不会搞反；手动执行 SQL 时必须核对 target 持有当前会话、source 持有大部分历史，只允许 `source → target` 方向。
+
+### 致谢
+
+- [xiaoliuzhuan666/workbuddy-account-migrate](https://github.com/xiaoliuzhuan666/workbuddy-account-migrate) — 本文档结构（问题场景、功能特性、迁移内容、工作原理、FAQ 等章节）参考自该项目，交互式向导「先选目标、再选源账号」的设计思路亦受其启发。本 Skill 的 `scripts/migrate.py` 与之功能同源、独立演进，并在 v1.5.0 中补充了迁移方向自检与 automations 归属处理（任务面板会话记录修复）两项实战验证的增强。
+
+> 详细文档（兼容性 / 安全规则 / 回滚 / FAQ / 更新日志）见 [account-migrate/README.md](account-migrate/README.md)。
+
 ### 企业微信（Mac 5.x）
 
 | Skill | 定位 | 来源 |
@@ -165,19 +238,7 @@ python3 "$SKILL_DIR/scripts/wecom_pro.py" status
 
 ### account-migrate — 账号迁移
 
-切换 WorkBuddy 账号后，对话记录/记忆/连接器消失时使用。**零依赖**（Python 3.8+），无需安装任何包。
-
-```bash
-# 交互式向导（推荐）：先选目标账号，再选源账号
-python3 ~/.workbuddy/skills/account-migrate/scripts/migrate.py
-
-# 仅诊断，查看所有账号数据分布
-python3 ~/.workbuddy/skills/account-migrate/scripts/migrate.py --diagnose
-
-# 迁移后必须重启 WorkBuddy 客户端生效
-```
-
-在 AI Agent 对话中直接说 **「迁移账号数据」** / **「切账号后记录丢了」** 也会自动触发本 Skill。详细文档见 [account-migrate/README.md](account-migrate/README.md)。
+完整用法见上方 [account-migrate — 账号迁移 Skill 详解](#account-migrate--账号迁移-skill-详解)（功能特性 / 快速开始 / 迁移内容 / 工作原理 / 致谢）与 [account-migrate/README.md](account-migrate/README.md)。一句话触发：对话中直接说 **「迁移账号数据」**，或命令行跑 `python3 ~/.workbuddy/skills/account-migrate/scripts/migrate.py`，**迁移后必须重启 WorkBuddy 客户端生效**。
 
 ### 在 AI Agent 中使用
 
