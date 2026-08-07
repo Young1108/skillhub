@@ -245,6 +245,12 @@ A: 可以。Skill 是纯文件，复制 `account-migrate/` 目录到对方的 `~
 
 ---
 
+## 致谢
+
+- [xiaoliuzhuan666/workbuddy-account-migrate](https://github.com/xiaoliuzhuan666/workbuddy-account-migrate) — 本文档的结构（问题场景、功能特性、迁移内容、工作原理、FAQ 等章节）参考自该项目，交互式向导"先选目标、再选源账号"的设计思路亦受其启发。本 Skill 的 `scripts/migrate.py` 与之功能同源、独立演进，并在 v1.5.0 中补充了**迁移方向自检**与 **automations 归属处理**（任务面板会话记录修复）两项实战验证的增强。
+
+---
+
 ## License
 
 [MIT](../../LICENSE) © 2026 Young1108
