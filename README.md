@@ -149,6 +149,90 @@ yichen-wecom-local-vault (基础层)
     └── wecom_common.py       数据库发现/密钥管理
 ```
 
+## 工作原理：本地数据存储与加密
+
+微信/企业微信的聊天记录**都存在本地 Mac 加密数据库中**。破解密钥后即可读取该账号在这台设备上同步过的全部记录。以下为两套体系的核心原理（基于本仓库 Skill 的实际执行验证）。
+
+### 对比总览
+
+| 维度 | 个人微信 Mac 4.x | 企业微信 Mac 5.x |
+|------|------------------|------------------|
+| 应用容器 | `com.tencent.xinWeChat` | `com.tencent.WeWorkMac` |
+| 加密方案 | SQLCipher AES-256-CBC | wxSQLite3 AES-128-CBC |
+| 密钥长度 | **32 字节**（PBKDF2 派生） | **16 字节**（raw key） |
+| 密钥存储 | 进程内存（hex 字符串） | 进程内存（DbKeyManager 对象） |
+| 密钥捕获 | frida spawn hook PBKDF2 | frida hooks / 内存扫描 |
+| 每页 IV 来源 | 页面尾部 reserve 区 | LCG 伪随机序列 → MD5 |
+| 每页 key 派生 | SQLCipher 标准页密钥 | MD5(raw + 页码 + "sAlT") |
+| 页尾保留区 | 80 字节（IV/HMAC） | 无 |
+| 核心数据库 | `message_*.db` / `session.db` / `contact.db` / `sns.db` / `favorite.db` | `message.db` / `session.db` / `user.db` |
+| WAL 处理 | 合并已提交帧 | 解析 frame header，只保留最后 commit 前事务 |
+
+### 个人微信（Mac 4.x）
+
+**存储路径**
+
+```
+~/Library/Containers/com.tencent.xinWeChat/Data/Library/Application Support/com.tencent.xinWeChat/<版本号>/<账号wxid>/
+```
+
+**加密原理**
+
+- SQLCipher AES-256-CBC，每页独立 IV
+- 密钥为 **32 字节**，运行时由 PBKDF2 派生，仅存在于微信进程内存（可被 frida spawn hook 捕获）
+- 每页尾部保留 **80 字节** reserve 区（存放 IV/HMAC 校验），解密时需跳过
+- 数据库包括消息库（`message_*.db`，按时间分库如 `msg_0.db`/`msg_1.db`）、会话库（`session.db`）、联系人库（`contact.db`）、朋友圈（`sns.db`）、收藏（`favorite.db`）、媒体资源库（`message_resource.db`）
+
+**关键点**
+
+- SIP 开启时 **attach 会被系统拒绝**（`PermissionDenied`），必须用 **frida spawn 模式** + ad-hoc 重签名副本抓 key
+- 抓 key 需退出微信主进程（SIGTERM 优雅退出），再用 frida spawn 启动副本
+- 最近消息在 `*.db-wal`，增量解密（`decrypt_all_dbs.py --mode incremental`）负责合并
+
+### 企业微信（Mac 5.x）
+
+**存储路径**
+
+```
+~/Library/Containers/com.tencent.WeWorkMac/Data/Library/Application Support/WXWork/Data/<账号ID>/Data/
+```
+
+**加密原理**
+
+- wxSQLite3 风格 **AES-128-CBC 分页加密**，与个人微信 SQLCipher **不兼容**
+- raw key 为 **16 字节**，仅存在于进程内存的 `DbKeyManager` 对象中，不落盘、不存钥匙串
+- page size 通常 4096 字节
+- **每页 AES key**：`MD5(raw_key + little_endian(page_number) + b"sAlT")`
+- **IV**：由页码驱动的 wxSQLite3 兼容伪随机序列（LCG）再取 MD5
+- 无个人微信 SQLCipher 的 80 字节 reserve/HMAC 区；第一页保留部分 SQLite header 字段用于格式识别与 key 验证
+- 会话 ID 前缀：`R:` 群聊、`S:` 单聊、`M:` 微信联系人、`O:` 应用/公众号、`Y:` 系统
+
+**关键点**
+
+- 密钥捕获两条路线：
+  1. **标准 hooks**（`capture_key_macos.py`）：hook `CC_MD5`/`CCCrypt`/`sqlite3_key` 等，企微**活跃解密时**才能抓到
+  2. **内存扫描**（`key_memory_scan.py`）：企微空闲时 hooks 抓不到，直接扫描进程 RW 内存，对每个 16 字节候选用 `CC_MD5`+`CCCrypt` 验证是否解出合法 SQLite header
+- WAL 合并：解析 32 字节 WAL header + 每个 24 字节 frame header，只保留最后一个 commit frame 之前的完整事务，按 commit size 截断写入明文快照
+
+### 能拿到什么 / 拿不到什么
+
+| 场景 | 结果 |
+|------|------|
+| 本机同步过的文本消息、引用结构、时间戳、发送者 | ✅ 可解密读取 |
+| 所有群聊/单聊 + 成员昵称 + 联系人信息 | ✅ 可解密读取 |
+| 换新设备后的历史（未同步到本机） | ❌ 拿不到 |
+| 用户已删除的记录 | ❌ 本地 DB 已无 |
+| 图片/语音/视频正文 | ❌ DB 只存 metadata/引用，媒体单独存储且可能已清理 |
+| 其他账号的数据 | ❌ 每账号独立目录 + 独立密钥 |
+
+### 安全含义
+
+数据库加密只是"防随手翻"，**不是真正的安全屏障**。谁能拿到本机 + 捕获进程内存密钥，谁就能读取该账号全部已同步聊天记录（实际验证：frida 内存扫描约 1-5 分钟即可提取企微密钥）。真正的防护依赖：
+
+- 设备物理安全 + 磁盘加密（FileVault）
+- 屏幕锁 + 登录密码
+- 企业后台的消息留存策略（决定换设备后历史是否全量同步）
+
 ## 适用机型与环境
 
 | 项目 | 个人微信 | 企业微信 |
