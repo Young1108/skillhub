@@ -87,6 +87,20 @@ python3 scripts/migrate.py --rollback <TAG>                 # 回滚到指定备
 
 **迁移方向自检（v1.5 关键新增）**：历史上发生过迁移方向反了的真实事故（源/目标互换，导致历史会话留在旧账号、任务面板会话记录全部消失）。交互式向导强制先选目标、再选源，天然不会搞反；手动执行 SQL 时必须核对 target 持有当前会话、source 持有大部分历史，只允许 `source → target` 方向。
 
+### 兼容性（跨平台）
+
+**account-migrate 跨平台，不限于 Mac。**
+
+| 平台 | 状态 |
+|---|---|
+| WorkBuddy (macOS) | ✅ 已实测 |
+| WorkBuddy (Windows) | ⚠️ 路径已适配（`%APPDATA%`），未实测，欢迎反馈 |
+| WorkBuddy (Linux) | ⚠️ 路径已适配（`XDG_CONFIG_HOME`），未实测，欢迎反馈 |
+
+跨平台依据：DB 路径 `Path.home()/.workbuddy/workbuddy.db` 三平台通用；storage.json 路径按平台自适应；Windows 终端 GBK 编码已处理。
+
+> ⚠️ 对比：本仓库**微信相关 Skill**（个人微信 / 企业微信）仅适用于 macOS，详见下方 [Windows 用户说明](#windows-用户说明)。
+
 ### 致谢
 
 - [xiaoliuzhuan666/workbuddy-account-migrate](https://github.com/xiaoliuzhuan666/workbuddy-account-migrate) — 本文档结构（问题场景、功能特性、迁移内容、工作原理、FAQ 等章节）参考自该项目，交互式向导「先选目标、再选源账号」的设计思路亦受其启发。本 Skill 的 `scripts/migrate.py` 与之功能同源、独立演进，并在 v1.5.0 中补充了迁移方向自检与 automations 归属处理（任务面板会话记录修复）两项实战验证的增强。
@@ -413,7 +427,7 @@ python3 "$SKILL_DIR/scripts/wecom_pro.py" analyze "群聊名称" --output-dir ~/
 
 ## Windows 用户说明
 
-⚠️ **本仓库所有 Skill 仅适用于 macOS，不支持 Windows。** Windows 用户需自行适配转换，主要差异：
+⚠️ **本仓库微信相关 Skill（个人微信 / 企业微信）仅适用于 macOS，不支持 Windows。**（例外：`account-migrate` 为跨平台 Skill，支持 macOS / Windows / Linux，见上方兼容性章节。）Windows 用户需自行适配转换，主要差异：
 
 | 维度 | macOS（本仓库） | Windows（需自行适配） |
 |------|-----------------|----------------------|
