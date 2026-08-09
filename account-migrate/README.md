@@ -4,6 +4,8 @@
 
 **v1.5.0** · macOS 实测 · 零依赖（Python 3.8+） · MIT License
 
+> **来源**：基于 [xiaoliuzhuan666/workbuddy-account-migrate](https://github.com/xiaoliuzhuan666/workbuddy-account-migrate) 演进（功能同源、独立维护，详见文末[致谢](#致谢)）。
+
 ---
 
 ## 你是不是遇到了这个问题？

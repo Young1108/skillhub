@@ -10,7 +10,7 @@ WorkBuddy 实用 Skill 集合：**账号迁移**（切账号后数据一键恢�
 
 | Skill | 定位 | 来源 |
 |-------|------|------|
-| **account-migrate** | 账号切换后数据合并：Session 对话记录 / Memory 长期记忆 / Connector 配置一键迁移到当前账号 | 原创（v1.5.0） |
+| **account-migrate** | 账号切换后数据合并：Session 对话记录 / Memory 长期记忆 / Connector 配置一键迁移到当前账号 | 基于 [xiaoliuzhuan666/workbuddy-account-migrate](https://github.com/xiaoliuzhuan666/workbuddy-account-migrate) 演进（v1.5.0） |
 
 ### 个人微信（Mac 4.x）
 
