@@ -9,8 +9,8 @@
 ├── workbuddy.db                  # SQLite 主数据库
 │   ├── sessions 表               # 按 user_id 隔离 ← 迁移目标
 │   ├── workspaces 表             # 无 user_id，全局共享
-│   ├── automations 表            # 无 user_id，全局共享
-│   └── automation_runs 表        # 无 user_id，全局共享
+│   ├── automations 表            # owner_user_id 字段（v1.5：任务按账号归属）
+│   └── automation_runs 表        # conversationId 关联 sessions，随账号迁移
 │
 ├── memory/                       # 长期记忆
 │   ├── {user_id}_memory.md       # 按文件名隔离 ← 迁移目标
@@ -56,8 +56,9 @@ cat ~/Library/Application\ Support/WorkBuddy/User/globalStorage/storage.json | \
 | connectors/mcp.json | 子目录 | JSON 深度合并 | 🟡 中（配置） |
 | connectors/states.json | 子目录 | JSON 深度合并 | 🟢 低 |
 | **tasks** | **按 session** | **TaskCreate 重建 / 文件复制** | **🟡 中（新版 UI 不读文件）** |
+| **automations** | **owner_user_id 字段** | **UPDATE owner_user_id（如任务归属旧账号）** | **🟡 中（v1.5 修正：有 owner_user_id，非无隔离）** |
+| **automation_runs** | **conversationId 关联 sessions** | **随 sessions 一并 UPDATE（任务面板会话记录依赖）** | **🟡 中（漏迁则任务在、会话记录为空）** |
 | skills | 无 | 不需要迁移 | - |
-| automations | 无 | 不需要迁移 | - |
 | settings/mcp/models | 无 | 不需要迁移 | - |
 
 ### WAL 模式处理
