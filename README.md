@@ -1,10 +1,16 @@
 # skillhub — WorkBuddy Skill 工具集
 
-WorkBuddy 实用 Skill 集合：**账号迁移**（切账号后数据一键恢复）与**微信本地聊天数据提取与分析**（个人微信 Mac 4.x / 企业微信 Mac 5.x）。支持 [WorkBuddy](https://www.codebuddy.cn/)、[Codex](https://openai.com/index/introducing-codex/)、[Claude Code](https://claude.ai/code) 等支持 Skill 机制的 AI Agent 安装使用。
+WorkBuddy 实用 Skill 集合：**账号迁移**（切账号后数据一键恢复）、**微信本地聊天数据提取与分析**（个人微信 Mac 4.x / 企业微信 Mac 5.x）与 **Wake 多 Agent 会话日报**（读 wake.db 生成当日 Coding Agent 工作日报）。支持 [WorkBuddy](https://www.codebuddy.cn/)、[Codex](https://openai.com/index/introducing-codex/)、[Claude Code](https://claude.ai/code) 等支持 Skill 机制的 AI Agent 安装使用。
 
 > ⚠️ **微信相关 Skill 仅适用于 macOS**。Windows 用户请阅读 [Windows 用户说明](#windows-用户说明)。
 
 ## Skill 列表
+
+### Agent 会话日报（Wake · macOS）
+
+| Skill | 定位 | 来源 |
+|-------|------|------|
+| **wake-agent-daily-report** | 读 Wake wake.db 生成当日多 Coding Agent 工作日报，结构「项目 → 时段 · Agent · 干了什么 + 产出效果」 | 原创 |
 
 ### 账号管理
 
@@ -106,6 +112,50 @@ python3 scripts/migrate.py --rollback <TAG>                 # 回滚到指定备
 - [xiaoliuzhuan666/workbuddy-account-migrate](https://github.com/xiaoliuzhuan666/workbuddy-account-migrate) — 本文档结构（问题场景、功能特性、迁移内容、工作原理、FAQ 等章节）参考自该项目，交互式向导「先选目标、再选源账号」的设计思路亦受其启发。本 Skill 的 `scripts/migrate.py` 与之功能同源、独立演进，并在 v1.5.0 中补充了迁移方向自检与 automations 归属处理（任务面板会话记录修复）两项实战验证的增强。
 
 > 详细文档（兼容性 / 安全规则 / 回滚 / FAQ / 更新日志）见 [account-migrate/README.md](account-migrate/README.md)。
+
+### wake-agent-daily-report — Wake 多 Agent 会话日报
+
+> 装了多个 Coding Agent（Claude Code / Codex / Cursor / dsh / pi / grok / qoder…）却不知道一天下来它们各自干了什么？本 Skill 读 Wake（[iAmCorey/Wake](https://github.com/iAmCorey/Wake)）聚合库 `wake.db`，一键生成当日工作日报。**macOS 专属**（依赖本机 Wake.app 已索引数据）。
+
+#### 触发方式
+
+安装后重启 WorkBuddy，对话中说：
+
+> 生成今天的 agent 日报
+>
+> 把今日各 agent 会话总结成日报
+>
+> 生成 2026-09-04 的工作日报
+
+#### 报告结构（项目-时段-干了什么 + 产出效果）
+
+多 Agent 同项目按时间轴合并成节；事件行以「产出/效果」收尾，必须为可验证产物（迁移名 / HTTP 状态 / 测试通过 / 文件路径），无法验证标"待验证"，禁止编造：
+
+| 时段 | Agent | 干了什么 | 产出 / 效果 |
+|------|-------|----------|-------------|
+| 11:23–11:41 | codex | 拆 2 个子代理重构 QA 审核指派，测试先行 | 迁移 `20260904_0035_*` 落地；待交叉审查 |
+| 15:16–15:25 | cursor | 标注入口去冗余：移除文件批次 UI | 侧栏收敛为「我的任务」，可深链工作区 |
+
+完整结构：头部 → 总览表（Agent/会话数/项目/一句话贡献）→ 按项目详述（上表）→ 产出物清单 → 风险备注。模板与写作纪律见 `references/report-structure.md`。
+
+#### 安装
+
+```bash
+git clone https://github.com/Young1108/skillhub.git /tmp/skillhub
+cp -r /tmp/skillhub/wake-agent-daily-report ~/.workbuddy/skills/
+```
+
+**依赖**：macOS + Wake.app（数据在 `~/Library/Application Support/wake/wake.db`）+ Python 3.8+（脚本仅用标准库，零第三方依赖）。
+
+**数据刷新提示**：若某 agent 会话未收录，先冷启动 Wake 触发全量扫描（`pkill -x Wake` 后重开；普通 quit 重开不跑启动扫描），再生成日报。
+
+#### 内置避坑（提取脚本已处理，勿重复踩）
+
+| 坑 | 处理 |
+|----|------|
+| cursor 消息无时间戳（`messages.ts` 为 NULL） | 按 `sessions.updated_at` 归属当日，不按消息 ts 过滤 |
+| 会话跨多日（同会话含历史轮次） | 只取当日时间窗口内的消息 |
+| 时间戳单位为毫秒 | 换算统一处理 |
 
 ### 企业微信（Mac 5.x）
 
