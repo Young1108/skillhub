@@ -1,6 +1,6 @@
 # skillhub — WorkBuddy Skill 工具集
 
-WorkBuddy 实用 Skill 集合：**账号迁移**（切账号后数据一键恢复）、**微信本地聊天数据提取与分析**（个人微信 Mac 4.x / 企业微信 Mac 5.x）与 **Wake 多 Agent 会话日报**（读 wake.db 生成当日 Coding Agent 工作日报）。支持 [WorkBuddy](https://www.codebuddy.cn/)、[Codex](https://openai.com/index/introducing-codex/)、[Claude Code](https://claude.ai/code) 等支持 Skill 机制的 AI Agent 安装使用。
+WorkBuddy 实用 Skill 集合：**账号迁移**（切账号后数据一键恢复）、**微信本地聊天数据提取与分析**（个人微信 Mac 4.x / 企业微信 Mac 5.x）、**Wake 多 Agent 会话日报**（读 wake.db 生成当日 Coding Agent 工作日报）与 **Skill 全局分发**（一份 Skill 同步到本机全部 AI Agent）。支持 [WorkBuddy](https://www.codebuddy.cn/)、[Codex](https://openai.com/index/introducing-codex/)、[Claude Code](https://claude.ai/code) 等支持 Skill 机制的 AI Agent 安装使用。
 
 > ⚠️ **微信相关 Skill 仅适用于 macOS**。Windows 用户请阅读 [Windows 用户说明](#windows-用户说明)。
 
@@ -17,6 +17,12 @@ WorkBuddy 实用 Skill 集合：**账号迁移**（切账号后数据一键恢�
 | Skill | 定位 | 来源 |
 |-------|------|------|
 | **account-migrate** | 账号切换后数据合并：Session 对话记录 / Memory 长期记忆 / Connector 配置一键迁移到当前账号 | 基于 [xiaoliuzhuan666/workbuddy-account-migrate](https://github.com/xiaoliuzhuan666/workbuddy-account-migrate) 演进（v1.5.0） |
+
+### Skill 全局分发（多工具同步）
+
+| Skill | 定位 | 来源 |
+|-------|------|------|
+| **agent-skill-sync** | 一份 Skill 同步到本机所有 AI Agent 的全局技能目录：规范源单点 `~/.agents/skills`，拷贝到 Codex / Cursor / WorkBuddy / Grok / Doubao / Kun，软链到 Claude Code / Kiro / CodeBuddy；附带幂等同步脚本 `scripts/sync-skill.sh` | 原创 |
 
 ### 个人微信（Mac 4.x）
 
@@ -324,35 +330,52 @@ yichen-wecom-local-vault (基础层)
 #### WorkBuddy
 
 ```bash
-git clone https://github.com/Young1108/wechat-skills.git /tmp/wechat-skills
+git clone https://github.com/Young1108/skillhub.git /tmp/skillhub
 mkdir -p ~/.workbuddy/skills
-cp -r /tmp/wechat-skills/* ~/.workbuddy/skills/  # 复制全部 skill
+cp -r /tmp/skillhub/*/ ~/.workbuddy/skills/  # 复制全部 skill
 # 或按需复制：
-# cp -r /tmp/wechat-skills/account-migrate ~/.workbuddy/skills/
-# cp -r /tmp/wechat-skills/yichen-wechat-local-vault ~/.workbuddy/skills/
-# cp -r /tmp/wechat-skills/wechat-local-vault-ops ~/.workbuddy/skills/
-# cp -r /tmp/wechat-skills/wechat-chat-extractor ~/.workbuddy/skills/
+# cp -r /tmp/skillhub/account-migrate ~/.workbuddy/skills/
+# cp -r /tmp/skillhub/yichen-wechat-local-vault ~/.workbuddy/skills/
+# cp -r /tmp/skillhub/wechat-local-vault-ops ~/.workbuddy/skills/
+# cp -r /tmp/skillhub/wechat-chat-extractor ~/.workbuddy/skills/
 ```
 
 #### Codex (OpenAI)
 
 ```bash
-git clone https://github.com/Young1108/wechat-skills.git /tmp/wechat-skills
+git clone https://github.com/Young1108/skillhub.git /tmp/skillhub
 mkdir -p ~/.codex/skills
-cp -r /tmp/wechat-skills/* ~/.codex/skills/
+cp -r /tmp/skillhub/*/ ~/.codex/skills/
 ```
 
 #### Claude Code
 
 ```bash
-git clone https://github.com/Young1108/wechat-skills.git /tmp/wechat-skills
+git clone https://github.com/Young1108/skillhub.git /tmp/skillhub
 mkdir -p ~/.claude/skills
-cp -r /tmp/wechat-skills/* ~/.claude/skills/
+cp -r /tmp/skillhub/*/ ~/.claude/skills/
 ```
 
 #### 其他 Agent
 
 将 skill 目录复制到你的 Agent 对应的 skills 目录即可。Skill 通过 `SKILL.md` 中的 `name` 和 `description` 字段被 Agent 识别和加载。
+
+#### 一次装到全部 Agent（推荐）
+
+本机若同时使用多个 AI Agent，不必逐个复制。用 **agent-skill-sync** 维护一个规范源，再一键铺开：
+
+```bash
+git clone https://github.com/Young1108/skillhub.git /tmp/skillhub
+mkdir -p ~/.agents/skills ~/.agents/scripts
+cp -r /tmp/skillhub/agent-skill-sync ~/.agents/skills/   # 其余 skill 按需追加
+cp /tmp/skillhub/agent-skill-sync/scripts/sync-skill.sh ~/.agents/scripts/
+chmod +x ~/.agents/scripts/sync-skill.sh
+~/.agents/scripts/sync-skill.sh <skill-name>   # 不带参可列出规范源与各 Agent 已铺开情况
+```
+
+> 上面的 `cp -r /tmp/skillhub/*/ <目标>` 用 `*/` 只复制 skill 目录，跳过 README、LICENSE 等根级文件。
+
+铺开规则：`~/.agents/skills` 为唯一真改动处；`~/.codex`、`~/.cursor`、`~/.workbuddy`、`~/.grok`、`~/Doubao`、`~/.kun` 存副本，`~/.claude`、`~/.kiro`、`~/.codebuddy` 建软链。详见 [agent-skill-sync/SKILL.md](agent-skill-sync/SKILL.md)。
 
 ### 安装 Python 依赖
 
