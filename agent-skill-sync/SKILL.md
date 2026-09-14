@@ -1,7 +1,7 @@
 ---
 name: agent-skill-sync
-description: 把一份 skill 同时装到本机所有 AI 编程工具的全局技能目录（WorkBuddy / Codex / Cursor / Claude Code / Kiro / CodeBuddy / Grok / Doubao / Kun），或在改动后把这些工具的 skill 副本重新同步。触发词：全局 skill、全局技能、所有工具都能调用、同步 skill、skill 装到 codex/cursor、agent skills 目录、sync-skill、skill 分发。
-version: 1.0.0
+description: 把一份 skill 同时装到本机所有 AI 编程工具的全局技能目录（WorkBuddy / Codex / Cursor / Claude Code / Kiro / CodeBuddy / Grok / Doubao / Kun），或在改动后把这些工具的 skill 副本重新同步；含新建/校验、合并重叠 skill、批量改写（组件替换）、公开仓库泄露闸门与跨机器拉取推回。触发词：全局 skill、全局技能、所有工具都能调用、同步 skill、skill 装到 codex/cursor、agent skills 目录、sync-skill、skill 分发、新建 skill、校验 skill、合并 skill、skill 改名换组件、skill 推公开仓库、skill 泄露复核。
+version: 1.1.0
 agent_created: true
 metadata:
   short-description: 本机多工具 skill 全局分发与同步
