@@ -87,6 +87,13 @@ chmod +x ~/.agents/scripts/sync-skill.sh
 3. `cp -R ~/.agents/skills/<name> ~/Documents/workspace/<repo>/skills/<name>`，同步更新仓库 README 的技能清单表格，再 commit & push
 
 > 目标仓库的目录约定不一样（有的用 `skills/<name>/`，有的把 skill 目录直接放仓库根），拷回去前先 `ls` 一眼，别按习惯硬套。
+>
+> **两个必踩的坑**：
+>
+> 1. `cp -R <源> <目标>` 在目标已存在时会**把源目录塞进目标里面**，变成 `<目标>/<name>/SKILL.md`。先 `rm -rf <目标>` 再拷，拷完 `find <仓库> -maxdepth 4 -name '<name>' -type d` 确认没有嵌套层。
+> 2. 提交时用 `git -C <仓库根>` 显式指定仓库根，**不要 `cd $(dirname <skill目录>)`** —— skill 目录就在仓库根时 dirname 会落到仓库外面，`git add` 报 `not a repository`，而复制已经发生，形成「文件改了但没提交」的静默漏推。
+>
+> 推完逐仓库核验：`git -C <仓库根> status -sb` 应为 `## main...origin/main`（无领先提交），并 `shasum -a 256` 比对规范源与仓库副本一致。
 
 ## 推送到公开仓库前的闸门（必做）
 
