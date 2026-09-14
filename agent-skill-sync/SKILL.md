@@ -46,6 +46,27 @@ mkdir -p ~/.agents/skills/<new-skill>
 ~/.agents/scripts/sync-skill.sh <new-skill>
 ```
 
+### 写完必须过校验脚本
+
+**别只靠肉眼检查 frontmatter 和目录结构**，用内置 skill-creator 的校验脚本过一遍（合格输出 `Skill is valid!`）：
+
+```bash
+# Codex 侧（推荐，路径稳定）
+python3 ~/.codex/skills/.system/skill-creator/scripts/quick_validate.py ~/.agents/skills/<name>
+
+# WorkBuddy 侧（版本目录会变，用通配）
+python3 ~/.workbuddy/plugins/cache/workbuddy-builtin/skill-skill-creator/*/scripts/quick_validate.py ~/.agents/skills/<name>
+```
+
+同目录还有两个能用的：
+
+- `init_skill.py` — 生成 skill 骨架，省得手写目录与 frontmatter
+- `package_skill.py` — 打包成可分发产物
+
+要完整流程（理解用例 → 规划可复用内容 → 初始化 → 编写 → 打包 → 迭代）时，直接加载内置 skill `skill-creator` 按它的六步走。
+
+> 说明：`SkillManage` 工具只在部分宿主会话里可用。它不可用时不要停在「没法创建 skill」，直接写文件 + 本 skill 的同步脚本即可，但**校验这一步不能省**。
+
 ## 从 GitHub 拉到本机（跨机器）
 
 技能仓库自行替换 `<你的仓库>`（约定 `skills/<name>/SKILL.md` 的私有仓库都适用）。建议克隆到固定位置 `~/Documents/workspace/<repo>`：
@@ -64,6 +85,81 @@ chmod +x ~/.agents/scripts/sync-skill.sh
 1. 改 `~/.agents/skills/<name>/`（规范源，唯一真改动处）
 2. `~/.agents/scripts/sync-skill.sh <name>` 铺到各工具
 3. `cp -R ~/.agents/skills/<name> ~/Documents/workspace/<repo>/skills/<name>`，同步更新仓库 README 的技能清单表格，再 commit & push
+
+> 目标仓库的目录约定不一样（有的用 `skills/<name>/`，有的把 skill 目录直接放仓库根），拷回去前先 `ls` 一眼，别按习惯硬套。
+
+## 推送到公开仓库前的闸门（必做）
+
+**先确认目标仓库可见性，再决定推哪些 skill**：
+
+```bash
+gh repo view <org>/<repo> --json visibility --jq .visibility
+```
+
+- 含**内部信息**的 skill（内部仓库路径、内部表名 / DSN、事件名、内部产品代号、内部文档路径）**只能进私有仓库**。推到公开仓库不可逆，属于数据外泄。
+- 推送前跑一遍泄露面复核，命中就先停下来问用户，不要自己判断「应该没事」：
+
+```bash
+cd ~/.agents/skills/<name>
+# 按项目补内部标识词：公司名、内部仓名、内部产品代号、核心表名
+for kw in <内部标识1> <内部标识2>; do
+  n=$(grep -ro "$kw" . | wc -l); [ "$n" != "0" ] && echo "⚠ $kw 命中 $n 次"
+done
+# 内部代码路径引用密度
+grep -rhoE "(app|agent|scripts|docs|tests)/[a-zA-Z0-9_/.-]+\.(py|md|sql)" . | sort -u | wc -l
+```
+
+判不准时的默认动作：**只推通用 skill，把含内部信息的留在私有仓库**，并向用户说明原因，由用户决定是否做脱敏版。
+
+## 合并重叠 skill
+
+发现两个 skill 职责重叠时收口为一个，**不要直接删掉被合并的**：
+
+1. 把被合并方的独有内容折进保留方，通常落成新的一节 + 一份 `references/<topic>.md`
+2. 保留方的 `description` 并入被合并方的触发词，否则以后搜不到
+3. 用「使用路径」式的分叉开头（如「日常场景走 A 节 / 重型场景走 B 节」）隔离两套约束，避免被合并方的门禁规则误伤日常用法
+4. 被合并方**移动到归档目录**而不是删除：`~/.agents/skills_archived/<name>.merged-<YYYYMMDD>/`；先 `cp -R` 备份、`diff -r` 校验一致，再 `mv` 原始目录进去
+5. 同步保留方到各工具目录，逐个确认被合并方已从所有 skills 目录消失
+
+## frontmatter 约定
+
+```yaml
+---
+name: <kebab-case，与目录名一致>
+description: <能力一句 + `触发词：…` + `不负责：…`>
+version: 1.0.0
+agent_created: true
+---
+```
+
+`description` 是各工具**唯一**用来判断「要不要加载」的字段，必须把触发词写全（中英文、同义词、错误信息原文都算），否则技能装了也检索不到。写完后用本文「写完必须过校验脚本」那节复验。
+
+## 批量改写 skill 内容（组件替换）
+
+场景：skill 里某块内容整体过时或换方案（例：观测后端从 A 换成 B、鉴权方式变更、依赖库换代），需要系统性替换而不是零星改词。
+
+1. **先 grep 定影响面，别凭印象改**：
+
+   ```bash
+   cd ~/.agents/skills/<name>
+   grep -rn -i "<旧组件词>" .        # 命中明细
+   grep -rln -i "<旧组件词>" .       # 涉及哪些文件，重点查 SKILL.md / references/ / agents/*.yaml
+   ```
+
+2. **把命中分三类再动手**，不分类就会改错或改漏：
+   - 必须改：实现口径、配置项、模块路径、排查步骤
+   - 保留但改措辞：术语、历史说明（显式标注「已废弃」）
+   - 不动：同名误伤（如 `-i "arize"` 会命中 `summarize`）
+3. **细则落 `references/<新组件>.md`，不要往 SKILL.md 主体堆**：配置表、映射表、排查提示放参考文件，SKILL.md 只留指针 + 硬约束，控制主文件长度。
+4. **旧内容降级、不抹掉**：仓库里仍存在但已作废的文档（ADR、旧方案章节）在参考列表中保留指针并标注「口径已作废」——直接删指针会让后来看到旧文档的人无法反查。
+5. **留一份迁移差异对照表**（旧 → 新：客户端 / 抽象 / 分级 / 开关 / 地址 / 凭据 / 落库字段）。排障时这张表最省时间，也是唯一值得保留旧名词的地方。
+6. **改完复查**：再跑一次 `grep -rn -i "<旧组件词>" .`，确认剩余命中都属于「有意保留」（迁移对照表、废弃标注、无法改的历史字段名）。
+7. **目标组件尚未落地时**，在文件顶部显式标注「模块名 / 配置项为约定命名，落地后以代码为准」，别把推测当事实传下去。
+
+两个容易踩的坑：
+
+- **改名会波及落库字段名（列名）**。列名属 DDL，改它要单独走迁移 —— 默认**保留列名，只改语义说明**，并在文档里写清「该列名不变、语义现由新组件产生」。
+- **只改了 SKILL.md，漏掉 `references/` 与 `agents/*.yaml` 里的简述字段**（后者的 short_description 常被忽略，但它是宿主界面直接展示的文案）。
 
 ## 不要动的目录
 
