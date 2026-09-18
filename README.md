@@ -1,6 +1,6 @@
 # skillhub — WorkBuddy Skill 工具集
 
-WorkBuddy 实用 Skill 集合：**账号迁移**（切账号后数据一键恢复）、**微信本地聊天数据提取与分析**（个人微信 Mac 4.x / 企业微信 Mac 5.x）、**Wake 多 Agent 会话日报**（读 wake.db 生成当日 Coding Agent 工作日报）与 **Skill 全局分发**（一份 Skill 同步到本机全部 AI Agent）。支持 [WorkBuddy](https://www.codebuddy.cn/)、[Codex](https://openai.com/index/introducing-codex/)、[Claude Code](https://claude.ai/code) 等支持 Skill 机制的 AI Agent 安装使用。
+WorkBuddy 实用 Skill 集合：**账号迁移**（切账号后数据一键恢复）、**微信本地聊天数据提取与分析**（个人微信 Mac 4.x / 企业微信 Mac 5.x）、**Wake 多 Agent 会话日报**（读 wake.db 生成当日 Coding Agent 工作日报）、**Skill 全局分发**（一份 Skill 同步到本机全部 AI Agent）与 **Skill 复利迭代**（Skill 用完后复盘沉淀，账本 + 体检）。支持 [WorkBuddy](https://www.codebuddy.cn/)、[Codex](https://openai.com/index/introducing-codex/)、[Claude Code](https://claude.ai/code) 等支持 Skill 机制的 AI Agent 安装使用。
 
 > ⚠️ **微信相关 Skill 仅适用于 macOS**。Windows 用户请阅读 [Windows 用户说明](#windows-用户说明)。
 
@@ -23,6 +23,45 @@ WorkBuddy 实用 Skill 集合：**账号迁移**（切账号后数据一键恢�
 | Skill | 定位 | 来源 |
 |-------|------|------|
 | **agent-skill-sync** | 一份 Skill 同步到本机所有 AI Agent 的全局技能目录：规范源单点 `~/.agents/skills`，拷贝到 Codex / Cursor / WorkBuddy / Grok / Doubao / Kun，软链到 Claude Code / Kiro / CodeBuddy；附带幂等同步脚本 `scripts/sync-skill.sh` | 原创 |
+
+### Skill 复利迭代（复盘 / 体检）
+
+| Skill | 定位 | 来源 |
+|-------|------|------|
+| **skill-doctor** | 用完 Skill 后把经验复盘成补丁：观察 → 提炼 → 判定（patch / correct / split / merge / no-op）→ 落盘 + 同步 + 记账；带体检脚本 `scripts/doctor.sh` | 原创 |
+
+> 一次踩坑只修当下、不修 Skill，下次同一个坑再踩一遍。本 Skill 把「用完即弃」变成复利：**每个 Skill 一份迭代账本**（`~/.agents/skill-ledger/<skill>.md`，与 `skills/` 目录平级 —— 故意不放进 Skill 目录，否则会随 `sync-skill.sh` 铺到 9 个工具目录并跟着推进仓库，泄露个人使用痕迹），记录场景矩阵 + 补丁历史 + 观察未采纳。
+
+#### 四步循环
+
+观察（场景 / 卡点 / 证据）→ 提炼（1–3 条可复用断言，无证据的标 `[待验证]` 不进下一步）→ 判定（防膨胀矩阵）→ 落盘（改规范源 → `sync-skill.sh` → 记账）。
+
+#### 判定矩阵（防膨胀核心）
+
+| 观察到的形态 | 动作 |
+|---|---|
+| 新坑位、边界条件、命令参数 | `patch`：补进已有章节 |
+| 只是措辞更准 / 触发词缺失 | `patch`：改 `description` 触发词 |
+| 原做法被证伪 | `correct`：立刻改正文并标注旧做法作废 |
+| 出现约束冲突的第二套流程 | `split`：新开 Skill + 原 Skill 加分流指针 |
+| 与另一 Skill 职责重叠 | `merge`：归档不删，走 `agent-skill-sync` 的合并流程 |
+| 一次性场景 / 已覆盖 / 无验证证据 | `no-op`：只记观察，不写入正文 |
+
+#### 落盘闸门（全过才写）
+
+可执行（含命令、路径、验收判据）、有时机（说明何时走这一步）、不重复（现有正文没覆盖）、有证据（源自实测输出或用户明确表述）、不越界（外部 Skill 只产建议 patch）、不膨胀（`SKILL.md` ≤ 200 行，细则下沉 `references/`）。
+
+#### 体检
+
+```bash
+~/.agents/skills/skill-doctor/scripts/doctor.sh                 # 全量体检
+~/.agents/skills/skill-doctor/scripts/doctor.sh <name>          # 指定 Skill
+~/.agents/skills/skill-doctor/scripts/doctor.sh --init <name>   # 建账本（只写 ~/.agents/skill-ledger/）
+```
+
+检查 frontmatter 完整性、`description` 是否带触发词、分发状态、文件长度预算、账本缺失 / 陈旧 / 未采纳积压、跨 Skill 触发词重叠（疑似职责重复）。只读，不改任何 Skill。
+
+> **灵感来源**：[Hermes Agent](https://github.com/NousResearch/hermes-agent)（Nous Research）的 learning loop —— observe → distill → reuse → refine、用 `skill_manage(patch)` 局部打补丁而非重写整个文档。差异：Hermes 靠常驻后台 Review Agent 自动触发复盘，本 Skill 改为「会话收尾自检 + 手动口令」触发，不依赖任何常驻进程。
 
 ### 个人微信（Mac 4.x）
 
@@ -540,4 +579,4 @@ Windows 用户建议参考以下开源项目自行实现等价能力：
 
 MIT License — 详见 [LICENSE](LICENSE)。
 
-> `yichen-*` 系列 Skill 遵循其原始作者 [mcncarl](https://github.com/mcncarl) 的 LICENSE。本仓库的原创 Skill（`wechat-chat-extractor`、`wechat-local-vault-ops`、`wecom-chat-extractor`）遵循 MIT License。
+> `yichen-*` 系列 Skill 遵循其原始作者 [mcncarl](https://github.com/mcncarl) 的 LICENSE。本仓库的原创 Skill（`wechat-chat-extractor`、`wechat-local-vault-ops`、`wecom-chat-extractor`、`skill-doctor`、`agent-skill-sync`）遵循 MIT License。
