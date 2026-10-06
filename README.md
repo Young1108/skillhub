@@ -1,6 +1,6 @@
 # skillhub — WorkBuddy Skill 工具集
 
-WorkBuddy 实用 Skill 集合：**账号迁移**（切账号后数据一键恢复）、**微信本地聊天数据提取与分析**（个人微信 Mac 4.x / 企业微信 Mac 5.x）、**Wake 多 Agent 会话日报**（读 wake.db 生成当日 Coding Agent 工作日报）、**Skill 全局分发**（一份 Skill 同步到本机全部 AI Agent）与 **Skill 复利迭代**（Skill 用完后复盘沉淀，账本 + 体检）。支持 [WorkBuddy](https://www.codebuddy.cn/)、[Codex](https://openai.com/index/introducing-codex/)、[Claude Code](https://claude.ai/code) 等支持 Skill 机制的 AI Agent 安装使用。
+WorkBuddy 实用 Skill 集合：**账号迁移**（切账号后数据一键恢复）、**微信本地聊天数据提取与分析**（个人微信 Mac 4.x / 企业微信 Mac 5.x）、**Wake 多 Agent 会话日报**（读 wake.db 生成当日 Coding Agent 工作日报）、**本地音频转录**（Mac 上全本地 Whisper，录音转文字）、**Skill 全局分发**（一份 Skill 同步到本机全部 AI Agent）与 **Skill 复利迭代**（Skill 用完后复盘沉淀，账本 + 体检）。支持 [WorkBuddy](https://www.codebuddy.cn/)、[Codex](https://openai.com/index/introducing-codex/)、[Claude Code](https://claude.ai/code) 等支持 Skill 机制的 AI Agent 安装使用。
 
 > ⚠️ **微信相关 Skill 仅适用于 macOS**。Windows 用户请阅读 [Windows 用户说明](#windows-用户说明)。
 
@@ -62,6 +62,14 @@ WorkBuddy 实用 Skill 集合：**账号迁移**（切账号后数据一键恢�
 检查 frontmatter 完整性、`description` 是否带触发词、分发状态、文件长度预算、账本缺失 / 陈旧 / 未采纳积压、跨 Skill 触发词重叠（疑似职责重复）。只读，不改任何 Skill。
 
 > **灵感来源**：[Hermes Agent](https://github.com/NousResearch/hermes-agent)（Nous Research）的 learning loop —— observe → distill → reuse → refine、用 `skill_manage(patch)` 局部打补丁而非重写整个文档。差异：Hermes 靠常驻后台 Review Agent 自动触发复盘，本 Skill 改为「会话收尾自检 + 手动口令」触发，不依赖任何常驻进程。
+
+### 本地音频转录（macOS · Apple Silicon）
+
+| Skill | 定位 | 来源 |
+|-------|------|------|
+| **local-audio-transcribe** | 全本地 Whisper 录音转文字：`.qta` / m4a / mp3 → 16k mono wav → 带时间戳 txt / srt / json。首选 MLX Whisper large-v3-turbo 走 GPU（实测 79 分钟音频 130 秒），含远场嘈杂录音的幻觉抑制与双版本交叉验证 | 原创 |
+
+> 全本地推理，音频不出本机。仅适用于 Apple Silicon（依赖 MLX）。已实测的坑：本地 faster-whisper medium 模型文件可能残缺、CPU 跑长音频不可接受、`brew install whisper-cpp` 会被 brew 自身 sandbox 拒绝、`pip install mlx-whisper` 会 SIGKILL（需 `pip download` + 手动解包）。
 
 ### 个人微信（Mac 4.x）
 
