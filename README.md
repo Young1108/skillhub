@@ -1,6 +1,6 @@
 # skillhub — WorkBuddy Skill 工具集
 
-WorkBuddy 实用 Skill 集合：**账号迁移**（切账号后数据一键恢复）、**微信本地聊天数据提取与分析**（个人微信 Mac 4.x / 企业微信 Mac 5.x）、**Wake 多 Agent 会话日报**（读 wake.db 生成当日 Coding Agent 工作日报）、**本地音频转录**（Mac 上全本地 Whisper，录音转文字）、**Skill 全局分发**（一份 Skill 同步到本机全部 AI Agent）与 **Skill 复利迭代**（Skill 用完后复盘沉淀，账本 + 体检）。支持 [WorkBuddy](https://www.codebuddy.cn/)、[Codex](https://openai.com/index/introducing-codex/)、[Claude Code](https://claude.ai/code) 等支持 Skill 机制的 AI Agent 安装使用。
+WorkBuddy 实用 Skill 集合：**账号迁移**（切账号后数据一键恢复）、**微信本地聊天数据提取与分析**（个人微信 Mac 4.x / 企业微信 Mac 5.x）、**Wake 多 Agent 会话日报**（读 wake.db 生成当日 Coding Agent 工作日报）、**本地音频转录**（Mac 上全本地 Whisper，录音转文字）、**前沿阅读认知沉淀**（核对总结 → 修正表述 → 出平实文案 → 归档认知日志）、**Skill 全局分发**（一份 Skill 同步到本机全部 AI Agent）与 **Skill 复利迭代**（Skill 用完后复盘沉淀，账本 + 体检）。支持 [WorkBuddy](https://www.codebuddy.cn/)、[Codex](https://openai.com/index/introducing-codex/)、[Claude Code](https://claude.ai/code) 等支持 Skill 机制的 AI Agent 安装使用。
 
 > ⚠️ **微信相关 Skill 仅适用于 macOS**。Windows 用户请阅读 [Windows 用户说明](#windows-用户说明)。
 
@@ -62,6 +62,28 @@ WorkBuddy 实用 Skill 集合：**账号迁移**（切账号后数据一键恢�
 检查 frontmatter 完整性、`description` 是否带触发词、分发状态、文件长度预算、账本缺失 / 陈旧 / 未采纳积压、跨 Skill 触发词重叠（疑似职责重复）。只读，不改任何 Skill。
 
 > **灵感来源**：[Hermes Agent](https://github.com/NousResearch/hermes-agent)（Nous Research）的 learning loop —— observe → distill → reuse → refine、用 `skill_manage(patch)` 局部打补丁而非重写整个文档。差异：Hermes 靠常驻后台 Review Agent 自动触发复盘，本 Skill 改为「会话收尾自检 + 手动口令」触发，不依赖任何常驻进程。
+
+### 前沿阅读认知沉淀（读文章 → 沉淀认知）
+
+| Skill | 定位 | 来源 |
+|-------|------|------|
+| **frontier-insight-loop** | 前沿文章阅读闭环：抓原文为唯一事实基准 → 逐条核对你的总结（✅准确 / ⚠️需校准 / ❌事实错误 / 💡遗漏高价值信息，每条附原文依据）→ 观点交锋 → 产出平实风格发布文案 → 追加到长期认知日志；同一主题聚类 ≥3 次时提示整理成系统性文章 | 原创 |
+
+> 解决的是「读完就忘、总结带错、认知不积累」。核心不是复述文章，而是**以原文纠正你的总结**——逻辑写反、错别字改义、删掉原文限定条件、术语误译都在重点盯防之列。默认输出推特/X 长帖风格的中文文案，风格要求「平实、不标题党」，细则见 `references/style-and-review-guide.md`，另附一次完整会话作为质量校准范例（`references/worked-example.md`）。
+
+#### 七步闭环
+
+抓原文（WebFetch，失败则 curl + 剥离 HTML）→ 逐条核对（四级判定 + 原文依据）→ 核对报告（含可直接复制的修正版总结）→ 观点交锋（感悟层做证据支撑度评估）→ 平实文案（引子 + 编号段落 + 收敛感悟）→ 归档认知日志（追加式）→ 交付确认。
+
+#### 用法
+
+读完文章，把链接和你的总结一起发出来即可触发：
+
+> 这篇 https://... 我总结了一下，你看看有没有需要优化的
+>
+> 1. …… 2. …… 3. ……
+
+认知日志默认落在用户 personal 目录的 `frontier-cognition-log.md`（`~/.workbuddy-ai/user-*-personal/`），首次使用可与 Agent 确认落点。日志条目格式：来源 / 核心事实（含数据）/ 我的认知更新 / 可复用句式与概念。
 
 ### 本地音频转录（macOS · Apple Silicon）
 
@@ -385,6 +407,7 @@ cp -r /tmp/skillhub/*/ ~/.workbuddy/skills/  # 复制全部 skill
 # cp -r /tmp/skillhub/yichen-wechat-local-vault ~/.workbuddy/skills/
 # cp -r /tmp/skillhub/wechat-local-vault-ops ~/.workbuddy/skills/
 # cp -r /tmp/skillhub/wechat-chat-extractor ~/.workbuddy/skills/
+# cp -r /tmp/skillhub/frontier-insight-loop ~/.workbuddy/skills/
 ```
 
 #### Codex (OpenAI)
@@ -465,6 +488,8 @@ python3 "$SKILL_DIR/scripts/wecom_pro.py" status
 > 用 wechat-chat-extractor 分析 XXX 群的聊天记录
 >
 > 用 wecom-chat-extractor 解析企业微信 XXX 群
+>
+> 这篇 <文章链接> 我总结了一下，你看看有没有需要优化的（frontier-insight-loop 自动接管）
 
 Agent 会自动识别 Skill、加载工作流、执行全流程。
 
