@@ -1,7 +1,7 @@
 ---
 name: skill-doctor
 description: 在用 skill 的复利迭代器——任务收尾时把本次真实使用经验复盘成补丁，安全落盘并记入账本，让同一个 skill 在新场景下越用越准（观察→提炼→判定→落盘→记账）。触发词：skill 复盘、迭代 skill、优化 skill、skill-doctor、沉淀本次经验、把这次经验写进 skill、skill 越用越准、skill 补丁、复盘这个技能、纠错沉淀、skill 迭代账本。不负责：从零创建新 skill（走 skill-creator）、多工具分发与仓库推送的执行细节（走 agent-skill-sync）、专家包（走 expert-manager）、代码库重构（走 code-review / improve-codebase-architecture）。
-version: 1.0.2
+version: 1.0.3
 agent_created: true
 metadata:
   short-description: skill 复利迭代（复盘→补丁→账本）
