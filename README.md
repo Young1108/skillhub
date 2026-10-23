@@ -1,6 +1,6 @@
 # skillhub — WorkBuddy Skill 工具集
 
-WorkBuddy 实用 Skill 集合：**账号迁移**（切账号后数据一键恢复）、**微信本地聊天数据提取与分析**（个人微信 Mac 4.x / 企业微信 Mac 5.x）、**Wake 多 Agent 会话日报**（读 wake.db 生成当日 Coding Agent 工作日报）、**本地音频转录**（Mac 上全本地 Whisper，录音转文字）、**前沿阅读认知沉淀**（核对总结 → 修正表述 → 出平实文案 → 归档认知日志）、**Skill 全局分发**（一份 Skill 同步到本机全部 AI Agent）与 **Skill 复利迭代**（Skill 用完后复盘沉淀，账本 + 体检）。支持 [WorkBuddy](https://www.codebuddy.cn/)、[Codex](https://openai.com/index/introducing-codex/)、[Claude Code](https://claude.ai/code) 等支持 Skill 机制的 AI Agent 安装使用。
+WorkBuddy 实用 Skill 集合：**账号迁移**（切账号后数据一键恢复）、**微信本地聊天数据提取与分析**（个人微信 Mac 4.x / 企业微信 Mac 5.x）、**Wake 多 Agent 会话日报**（读 wake.db 生成当日 Coding Agent 工作日报）、**本地音频转录**（Mac 上全本地 Whisper，录音转文字）、**前沿阅读认知沉淀**（核对总结 → 修正表述 → 出平实文案 → 归档认知日志）、**Skill 全局分发**（一份 Skill 同步到本机全部 AI Agent）**Skill 沉淀判定**（收尾四问决定该不该写）、**Skill 复利迭代**（Skill 用完后复盘沉淀，账本 + 体检）。支持 [WorkBuddy](https://www.codebuddy.cn/)、[Codex](https://openai.com/index/introducing-codex/)、[Claude Code](https://claude.ai/code) 等支持 Skill 机制的 AI Agent 安装使用。
 
 > ⚠️ **微信相关 Skill 仅适用于 macOS**。Windows 用户请阅读 [Windows 用户说明](#windows-用户说明)。
 
@@ -62,6 +62,14 @@ WorkBuddy 实用 Skill 集合：**账号迁移**（切账号后数据一键恢�
 检查 frontmatter 完整性、`description` 是否带触发词、分发状态、文件长度预算、账本缺失 / 陈旧 / 未采纳积压、跨 Skill 触发词重叠（疑似职责重复）。只读，不改任何 Skill。
 
 > **灵感来源**：[Hermes Agent](https://github.com/NousResearch/hermes-agent)（Nous Research）的 learning loop —— observe → distill → reuse → refine、用 `skill_manage(patch)` 局部打补丁而非重写整个文档。差异：Hermes 靠常驻后台 Review Agent 自动触发复盘，本 Skill 改为「会话收尾自检 + 手动口令」触发，不依赖任何常驻进程。
+
+### Skill 沉淀判定（该不该写）
+
+| Skill | 定位 | 来源 |
+|-------|------|------|
+| **skill-sedimentation** | 任务收尾判断「这次值不值得固化」：四问（会再发生 / ≥3 个固定常量 / ≥1 个不明显的坑 / ≥3 步动作）全过才写 Skill，2–3 条先记记忆观察，≤1 条不写；附五段式产出规格与可粘贴到任意 Agent 的规则块（含英文短版） | 原创 |
+
+> Skill 文件能复制，**「收尾时主动想起来」这个习惯不会跟着复制**。除 WorkBuddy 有内建提醒，Claude Code / Codex / Cursor 都只认各自的系统指令文件。所以本 Skill 附带 `references/portable-rules.md`：整段粘进 `~/.claude/CLAUDE.md`、`~/.codex/AGENTS.md`、`~/.cursor/rules/*.mdc` 才会在新工具里生效。
 
 ### 前沿阅读认知沉淀（读文章 → 沉淀认知）
 
