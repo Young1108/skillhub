@@ -1,6 +1,6 @@
 # skillhub — WorkBuddy Skill 工具集
 
-WorkBuddy 实用 Skill 集合：**账号迁移**（切账号后数据一键恢复）、**微信本地聊天数据提取与分析**（个人微信 Mac 4.x / 企业微信 Mac 5.x）、**Wake 多 Agent 会话日报**（读 wake.db 生成当日 Coding Agent 工作日报）、**本地音频转录**（Mac 上全本地 Whisper，录音转文字）、**前沿阅读认知沉淀**（核对总结 → 修正表述 → 出平实文案 → 归档认知日志）、**Skill 全局分发**（一份 Skill 同步到本机全部 AI Agent）**Skill 沉淀判定**（收尾四问决定该不该写）、**Skill 复利迭代**（Skill 用完后复盘沉淀，账本 + 体检）。支持 [WorkBuddy](https://www.codebuddy.cn/)、[Codex](https://openai.com/index/introducing-codex/)、[Claude Code](https://claude.ai/code) 等支持 Skill 机制的 AI Agent 安装使用。
+WorkBuddy 实用 Skill 集合：**账号迁移**（切账号后数据一键恢复）、**微信本地聊天数据提取与分析**（个人微信 Mac 4.x / 企业微信 Mac 5.x）、**Wake 多 Agent 会话日报**（读 wake.db 生成当日 Coding Agent 工作日报）、**本地音频转录**（Mac 上全本地 Whisper，录音转文字）、**需求调研材料汇总**（录音 + 在线文档 → 可评审的结构化调研总结）、**前沿阅读认知沉淀**（核对总结 → 修正表述 → 出平实文案 → 归档认知日志）、**Skill 全局分发**（一份 Skill 同步到本机全部 AI Agent）**Skill 沉淀判定**（收尾四问决定该不该写）、**Skill 复利迭代**（Skill 用完后复盘沉淀，账本 + 体检）。支持 [WorkBuddy](https://www.codebuddy.cn/)、[Codex](https://openai.com/index/introducing-codex/)、[Claude Code](https://claude.ai/code) 等支持 Skill 机制的 AI Agent 安装使用。
 
 > ⚠️ **微信相关 Skill 仅适用于 macOS**。Windows 用户请阅读 [Windows 用户说明](#windows-用户说明)。
 
@@ -100,6 +100,48 @@ WorkBuddy 实用 Skill 集合：**账号迁移**（切账号后数据一键恢�
 | **local-audio-transcribe** | 全本地 Whisper 录音转文字：`.qta` / m4a / mp3 → 16k mono wav → 带时间戳 txt / srt / json。首选 MLX Whisper large-v3-turbo 走 GPU（实测 79 分钟音频 130 秒），含远场嘈杂录音的幻觉抑制与双版本交叉验证 | 原创 |
 
 > 全本地推理，音频不出本机。仅适用于 Apple Silicon（依赖 MLX）。已实测的坑：本地 faster-whisper medium 模型文件可能残缺、CPU 跑长音频不可接受、`brew install whisper-cpp` 会被 brew 自身 sandbox 拒绝、`pip install mlx-whisper` 会 SIGKILL（需 `pip download` + 手动解包）。
+
+### 需求调研材料汇总（录音 + 在线文档 → 调研总结）
+
+| Skill | 定位 | 来源 |
+|-------|------|------|
+| **requirement-research-digest** | 把异构材料（面聊/访谈录音、飞书 wiki/docx、微信或企微 `doc.weixin.qq.com` 分享页、散落速记）汇总成一份可直接进评审的结构化调研总结。附三个脚本：飞书批量拉取 + **空壳检测**、SPA 页面免登录渲染抓取、CDP 底层实现 | 原创 |
+
+> 核心不是「怎么写总结」，而是**取证纪律**：材料里必然混着假信息（转录错字、只建了标题的占位文档、噪声段幻觉）。交付物强制分四层——录音确证 / 文档确证 / 推断 / 未辨识，禁止混写。
+>
+> 两个已固化的坑：① 飞书文档 `docs +fetch` 对空壳文档照样返回 `ok`，正文只有 `# 标题`，不判定就会误以为「评审已开过」，拿推断冒充结论；② `doc.weixin.qq.com/smartpage` 带 `scode=` 分享码时**不需要登录态**，但 curl 只能拿到空壳 HTML，必须用 Chrome + CDP 渲染。
+
+#### 三个脚本
+
+```bash
+# 1. 飞书批量拉取 + 空壳检测（输出 OK / EMPTY / FAIL + 字数）
+LARK_PROFILE=<企业profile> python3 scripts/fetch_lark_docs.py ./out <url1> <url2> <url3>
+# 或从清单文件读（每行：别名<TAB>URL）
+python3 scripts/fetch_lark_docs.py ./out --file list.txt
+
+# 2. SPA 页面渲染抓取（干净 profile，无需登录态，自动清理临时目录）
+bash scripts/grab_spa_text.sh "<url>" ./out/page.txt
+# 退出码 3 = 文本过短，疑似登录墙
+
+# 3. CDP 底层实现（被脚本 2 调用，也可直接用）
+node scripts/grab_text.mjs "<url>" out.txt [port] [maxRounds]
+```
+
+**依赖**：脚本 1 需要 `lark-cli` 已登录；脚本 2/3 需要 macOS + Chrome + Node ≥ 22（用内置 WebSocket，零 npm 依赖）。
+
+#### 输出骨架（固定八节）
+
+调研概况 → 结论速览 → 现状复述 → 需求清单（R1..Rn，带验收要点）→ 明确排除项 → 待确认问题（Q1..Qn，带需确认人）→ 文档缺口 → 下一步流转，附「未辨识内容」对照表。
+
+#### 五条判断陷阱（SKILL.md 详述）
+
+| 症状 | 真相 |
+|---|---|
+| 把「准确率不够」当核心问题 | 往往是**责任归属**：用户不复用是因为 AI 不能替人担责，不是结果错 |
+| 把业务方口述的规则直接当系统规则 | 业务讲「怎么灵活处理」，系统要「怎么稳定判定」，两者常常相反 |
+| 产品替业务定阈值 | 边界类参数要留成可配置项 + 默认安全值 |
+| 把空壳文档算作已完成阶段 | 空壳 = 该阶段没发生，交付物必须写「实际只到 X 阶段」 |
+| 用常识填补转录缺口 | 远场录音必然有信息缺口，填空后当原话是硬伤 |
 
 ### 个人微信（Mac 4.x）
 
@@ -620,4 +662,4 @@ Windows 用户建议参考以下开源项目自行实现等价能力：
 
 MIT License — 详见 [LICENSE](LICENSE)。
 
-> `yichen-*` 系列 Skill 遵循其原始作者 [mcncarl](https://github.com/mcncarl) 的 LICENSE。本仓库的原创 Skill（`wechat-chat-extractor`、`wechat-local-vault-ops`、`wecom-chat-extractor`、`skill-doctor`、`agent-skill-sync`）遵循 MIT License。
+> `yichen-*` 系列 Skill 遵循其原始作者 [mcncarl](https://github.com/mcncarl) 的 LICENSE。本仓库的原创 Skill（`wechat-chat-extractor`、`wechat-local-vault-ops`、`wecom-chat-extractor`、`skill-doctor`、`agent-skill-sync`、`requirement-research-digest`）遵循 MIT License。
