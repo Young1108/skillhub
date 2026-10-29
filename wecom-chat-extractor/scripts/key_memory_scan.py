@@ -5,15 +5,14 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import os
 import struct
 import sys
 import time
 import queue
 from pathlib import Path
 
-SKILL_DIR = Path(os.path.expanduser("~/.workbuddy/skills/yichen-wecom-local-vault"))
-sys.path.insert(0, str(SKILL_DIR / "scripts"))
+ENGINE_DIR = Path(__file__).resolve().parent / "engine"
+sys.path.insert(0, str(ENGINE_DIR))
 
 from wecom_common import (  # noqa: E402
     choose_dataset,

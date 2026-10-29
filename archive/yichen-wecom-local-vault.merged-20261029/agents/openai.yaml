@@ -1,3 +1,4 @@
+# ARCHIVED 2026-10-29. Do not install. Use wecom-chat-extractor.
 interface:
   display_name: "企业微信本地数据 Vault"
   short_description: "只读解析 Mac 企业微信本地聊天数据库并导出数据"

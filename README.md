@@ -286,10 +286,9 @@ cp -r /tmp/skillhub/wake-agent-daily-report ~/.workbuddy/skills/
 
 | Skill | 定位 | 来源 |
 |-------|------|------|
-| **yichen-wecom-local-vault** | 基础引擎：数据库发现、解密、查询、导出 | ⚠️ 外部开源，源自 [mcncarl/yichen-skills](https://github.com/mcncarl/yichen-skills/tree/main/yichen-wecom-local-vault) |
-| **wecom-chat-extractor** | 增强工具：统一 CLI、内存扫描密钥捕获、结构化导出、HTML 报告 | 原创 |
+| **wecom-chat-extractor** | 唯一入口：密钥捕获、解密、查询、结构化导出、HTML 报告。上游引擎在 `scripts/engine/`，不再单独安装 | 原创门面 + [mcncarl/yichen-skills](https://github.com/mcncarl/yichen-skills/tree/main/yichen-wecom-local-vault) 引擎 |
 
-> **`yichen-*` 系列是外部开源 Skill**，由 [mcncarl](https://github.com/mcncarl) 开发，遵循其原始 LICENSE。本仓库仅做打包分发，不修改其核心逻辑。增强层 Skill 依赖基础引擎提供的能力。
+> **`yichen-wechat-local-vault` 仍是独立的外部开源 Skill**，由 [mcncarl](https://github.com/mcncarl) 开发，遵循其原始 LICENSE。企业微信引擎已并入 `wecom-chat-extractor/scripts/engine/`，归档在 `archive/yichen-wecom-local-vault.merged-20261029/`，不要再单独安装。
 
 ## 架构关系
 
@@ -323,19 +322,17 @@ wechat-local-vault-ops (运维手册)
 用户
  │
  ▼
-wecom-chat-extractor (增强层)
- │  ├── wecom_pro.py          统一 CLI 入口
- │  ├── key_memory_scan.py    Frida 内存扫描（密钥捕获 fallback）
- │  ├── structured_export.py  结构化 Markdown 导出
- │  └── html_report.py        HTML 分析报告
- │
- ▼ 调用
- │
-yichen-wecom-local-vault (基础层)
-    ├── vault_cli.py          解密/查询/导出
-    ├── capture_key_macos.py  标准 Frida hooks 密钥捕获
-    ├── wecom_crypto.py       wxSQLite3 AES-128 解密
-    └── wecom_common.py       数据库发现/密钥管理
+wecom-chat-extractor
+ ├── wecom_pro.py                 唯一 CLI
+ ├── key_memory_scan.py           内存扫描（auto 的 fallback）
+ ├── structured_export.py         结构化 Markdown
+ ├── html_report.py               HTML 报告
+ └── engine/                      上游引擎（随本 Skill 安装）
+     ├── vault_cli.py             解密/查询/导出
+     ├── capture_key_macos.py     hooks / 重签副本
+     ├── scan_dbkey_manager_macos.py
+     ├── wecom_crypto.py
+     └── wecom_common.py
 ```
 
 ## 工作原理：本地数据存储与加密
@@ -398,9 +395,11 @@ yichen-wecom-local-vault (基础层)
 
 **关键点**
 
-- 密钥捕获两条路线：
-  1. **标准 hooks**（`capture_key_macos.py`）：hook `CC_MD5`/`CCCrypt`/`sqlite3_key` 等，企微**活跃解密时**才能抓到
-  2. **内存扫描**（`key_memory_scan.py`）：企微空闲时 hooks 抓不到，直接扫描进程 RW 内存，对每个 16 字节候选用 `CC_MD5`+`CCCrypt` 验证是否解出合法 SQLite header
+- 密钥捕获由 `wecom_pro.py capture-key` 选择。默认 `auto` 只走前两条，后两条必须显式指定：
+  1. **hooks**（`scripts/engine/capture_key_macos.py`）：企微活跃解密时才能抓到
+  2. **内存扫描**（`scripts/key_memory_scan.py`）：企微空闲时的 fallback
+  3. **dbkey-scan**（`scripts/engine/scan_dbkey_manager_macos.py`）：不注入，需本机管理员密码
+  4. **signed-copy**：复制并重签一份副本再捕获，不改原始 `企业微信.app`
 - WAL 合并：解析 32 字节 WAL header + 每个 24 字节 frame header，只保留最后一个 commit frame 之前的完整事务，按 commit size 截断写入明文快照
 
 ### 能拿到什么 / 拿不到什么
@@ -493,7 +492,7 @@ chmod +x ~/.agents/scripts/sync-skill.sh
 ~/.agents/scripts/sync-skill.sh <skill-name>   # 不带参可列出规范源与各 Agent 已铺开情况
 ```
 
-> 上面的 `cp -r /tmp/skillhub/*/ <目标>` 用 `*/` 只复制 skill 目录，跳过 README、LICENSE 等根级文件。
+> 上面的 `cp -r /tmp/skillhub/*/ <目标>` 用 `*/` 只复制目录，跳过 README、LICENSE 等根级文件。`archive/` 不是 Skill，拷进去也不会被加载（里面没有 `SKILL.md`）。企业微信只需要 `wecom-chat-extractor`。
 
 铺开规则：`~/.agents/skills` 为唯一真改动处；`~/.codex`、`~/.cursor`、`~/.workbuddy`、`~/.grok`、`~/Doubao`、`~/.kun` 存副本，`~/.claude`、`~/.kiro`、`~/.codebuddy` 建软链。详见 [agent-skill-sync/SKILL.md](agent-skill-sync/SKILL.md)。
 
@@ -595,7 +594,8 @@ python3 "$SKILL_DIR/scripts/wecom_pro.py" analyze "群聊名称" --output-dir ~/
 | 命令 | 说明 |
 |------|------|
 | `status` | 检查数据库状态 |
-| `capture-key` | 捕获解密密钥（auto/hooks/memory-scan） |
+| `discover` / `doctor` | 发现数据集 / 检查依赖（不附加进程） |
+| `capture-key` | 捕获解密密钥（默认 auto；显式方法另有 dbkey-scan、signed-copy） |
 | `decrypt` | 解密数据库到明文快照 |
 | `sessions` | 列出/搜索会话 |
 | `contacts` | 列出/搜索联系人 |
@@ -654,7 +654,7 @@ Windows 用户建议参考以下开源项目自行实现等价能力：
 
 ## 致谢
 
-- [mcncarl/yichen-skills](https://github.com/mcncarl/yichen-skills) — `yichen-wechat-local-vault` 与 `yichen-wecom-local-vault` 的原始作者，提供了核心的密钥提取、数据库解密与查询能力
+- [mcncarl/yichen-skills](https://github.com/mcncarl/yichen-skills) — `yichen-wechat-local-vault` 的原始作者；企业微信引擎同样来自该仓库，现放在 `wecom-chat-extractor/scripts/engine/`
 - [frida](https://frida.re/) — 动态代码插桩框架，密钥提取的基础工具
 - [Chart.js](https://www.chartjs.org/) — HTML 报告的可视化图表库
 
@@ -662,4 +662,4 @@ Windows 用户建议参考以下开源项目自行实现等价能力：
 
 MIT License — 详见 [LICENSE](LICENSE)。
 
-> `yichen-*` 系列 Skill 遵循其原始作者 [mcncarl](https://github.com/mcncarl) 的 LICENSE。本仓库的原创 Skill（`wechat-chat-extractor`、`wechat-local-vault-ops`、`wecom-chat-extractor`、`skill-doctor`、`agent-skill-sync`、`requirement-research-digest`）遵循 MIT License。
+> `yichen-wechat-local-vault`，以及 `wecom-chat-extractor/scripts/engine/`（原 `yichen-wecom-local-vault`）遵循其原始作者 [mcncarl](https://github.com/mcncarl) 的 LICENSE。本仓库的原创 Skill（`wechat-chat-extractor`、`wechat-local-vault-ops`、`wecom-chat-extractor` 门面、`skill-doctor`、`agent-skill-sync`、`requirement-research-digest`）遵循 MIT License。

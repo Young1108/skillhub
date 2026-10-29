@@ -22,6 +22,8 @@ SOFTWARE.
 
 ---
 
-NOTE: The yichen-wecom-local-vault directory is derived from
-https://github.com/mcncarl/yichen-skills and is subject to its original
-license terms. See yichen-wecom-local-vault/ for details.
+NOTE: wecom-chat-extractor/scripts/engine/ is derived from
+https://github.com/mcncarl/yichen-skills (formerly shipped here as
+yichen-wecom-local-vault) and is subject to its original license terms.
+See wecom-chat-extractor/scripts/engine/UPSTREAM.md. The pre-merge skill
+text is kept in archive/yichen-wecom-local-vault.merged-20261029/.

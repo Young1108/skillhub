@@ -1,5 +1,9 @@
 # 工作流详解
 
+唯一入口是 `scripts/wecom_pro.py`。解密、查询和基础导出在 `scripts/engine/`（上游 yichen-wecom-local-vault，已并入本 Skill）。
+
+`capture-key` 的默认 `auto` 只跑下面的阶段 A，失败后再跑阶段 B。`dbkey-scan` 和 `signed-copy` 不会自动执行。
+
 ## 完整流程
 
 ```
@@ -50,12 +54,18 @@
 - **耗时**：1-5 分钟（取决于 RW 内存大小，典型 60-170MB）
 - **限制**：需要 Frida 能 attach 到进程（SIP 启用时可能需要特殊处理）
 
-### 重签副本捕获
+### 重签副本捕获（`--method signed-copy`，不进入 auto）
 - **原理**：复制企微 app，ad-hoc 重签，Frida spawn 启动副本
-- **触发条件**：副本启动时必然读取数据库
+- **触发条件**：副本启动时必然读取数据库；用户当轮明确允许走这条路径
 - **成功率**：高（但 Apple Silicon 上 Frida spawn 可能被断点拒绝）
 - **耗时**：240 秒
-- **限制**：需要手动登录副本；原企微需退出（单实例机制）
+- **限制**：需要手动登录副本；原企微需退出（单实例机制）。不改 `/Applications/企业微信.app`
+
+### DbKeyManager 读取（`--method dbkey-scan`，不进入 auto）
+- **原理**：按当前进程里的 DbKeyManager 读取已在内存中的 raw key，不注入代码
+- **触发条件**：用户同意在本机终端输入管理员密码
+- **耗时**：取决于进程内存扫描范围
+- **限制**：不关闭 SIP，不放宽 `taskport`；验证通过才写入私密 Vault
 
 ## WeCom 数据库结构
 
@@ -97,7 +107,9 @@ WeCom 存储引用回复时，把被引用内容和回复拼接为一个字符�
 ## 安全边界
 
 - 只读源数据库（`mode=ro`），不写回企微容器
-- 不发送消息、不点击 UI、不重启客户端
+- 不发送消息、不点击 UI、不重启客户端，不改原始应用包
+- `auto` / `hooks` / `memory-scan` 不提权、不重签
+- 不关闭 SIP，不放宽系统 `taskport`
 - 密钥文件权限 0600，终端不显示密钥
 - 明文快照标记 `contains_plaintext_wecom_data: true`
 - 导出文件权限 0600，拒绝覆盖已有文件

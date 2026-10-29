@@ -1,188 +1,137 @@
 ---
 name: wecom-chat-extractor
 description: >-
-  企业微信本地聊天数据提取与分析工具。从 Mac 企微 5.x 本地加密数据库中捕获密钥、解密、
-  查询会话/联系人/消息、导出结构化 Markdown 和可视化 HTML 分析报告。当用户要解析企业微信
-  聊天记录、企微群聊数据、WeCom local database、导出群聊记录、分析销售沟通群时使用。
-  依赖 yichen-wecom-local-vault 提供核心解密能力。
+  企业微信 Mac 5.x 本地聊天数据的唯一入口。捕获密钥、解密、查询联系人/会话/客户/群聊消息，
+  导出结构化 Markdown 和 HTML 分析报告。用户要解析企业微信本地数据、企微聊天记录、
+  WeCom/WXWork contacts、sessions、groups、customers、message history、local database backup、
+  structured export，或分析销售沟通群时使用。捕获密钥、读取进程内存或导出明文前需本轮明确授权；
+  输出用用户指定的私密目录，不默认写入项目、桌面或云盘。不要安装已归档的 yichen-wecom-local-vault。
 ---
 
 # wecom-chat-extractor
 
-企业微信 5.x 本地数据提取与分析工具。在 `yichen-wecom-local-vault` 基础上增加内存扫描密钥捕获、结构化 Markdown 导出和 HTML 可视化报告，通过统一 CLI `wecom_pro.py` 串联全流程。
+Mac 企业微信 5.x 本地数据库的唯一 Skill。解密和查询在 `scripts/engine/`（上游 [yichen-wecom-local-vault](https://github.com/mcncarl/yichen-skills/tree/main/yichen-wecom-local-vault)，不改解密实现）。本目录负责统一 CLI、结构化 Markdown 和 HTML 报告。
+
+个人微信用 `yichen-wechat-local-vault`。两套容器和加密不兼容，不要混用。
 
 ## 前置条件
 
-- macOS，企业微信 5.x 已安装并运行
-- Python 3.10+，已安装 `pycryptodome` 和 `frida`（隔离 venv）
-- `yichen-wecom-local-vault` skill 已部署
+- macOS，企业微信 5.x 已安装
+- Python 3.10+
+- 解密需要 `pycryptodome`；捕获密钥需要 `frida`
+- 不要自动安装依赖，先报告缺项
 
 ## 工作流
 
 ```
-企业微信运行中
-    │
-    ① capture-key   捕获密钥（auto: hooks → 内存扫描 fallback）
-    │
-    ② decrypt       解密数据库 → 明文快照
-    │
-    ③ sessions      查找目标群聊
-    │
-    ④ analyze       一键生成 JSON + 结构化 MD + HTML 报告
+status / discover     只检查，不附加进程
+    → capture-key     默认 auto：hooks，失败再内存扫描
+    → decrypt         明文快照
+    → sessions        确认群名
+    → analyze         JSON + 结构化 Markdown + HTML
 ```
 
-首次使用依次执行 ①→②→③→④；已有密钥和快照时自动跳过，直接执行 ③→④。
+已有密钥和快照时跳过前两步。要固定某次快照时，给查询和导出加 `--snapshot`。
+
+没有本轮明确授权时，只运行 `status`、`discover`、`doctor`，以及已有快照上的查询。不要运行 `capture-key` 或 `decrypt`，也不要把明文导出到项目、桌面或云盘。
 
 ## 入口
 
 ```bash
-SKILL_DIR="${HOME}/.workbuddy/skills/wecom-chat-extractor"
+SKILL_DIR="${HOME}/.agents/skills/wecom-chat-extractor"
 python3 "$SKILL_DIR/scripts/wecom_pro.py" <command> [options]
 ```
 
-不要自动安装依赖，先报告缺项。依赖：`pycryptodome`（解密）、`frida`（密钥捕获）。
+装在 `~/.workbuddy/skills/` 或 `~/.codex/skills/` 时，换掉上面的目录即可。引擎在本 Skill 内，不再依赖另一个已安装 Skill。
 
 ## 命令
 
-### capture-key — 捕获解密密钥
-
-```bash
-python3 wecom_pro.py capture-key \
-  [--method auto|hooks|memory-scan] \
-  [--hook-duration 60] [--scan-duration 300] \
-  [--skip-hooks] [--data-dir DIR]
-```
-
-- `auto`（默认）：先 hooks 60s，失败则内存扫描 300s
-- `hooks`：仅 hook CC_MD5/CCCrypt/sqlite3_key，需企微活跃解密
-- `memory-scan`：扫描进程 RW 内存逐个验证，企微空闲时唯一可靠方式
-- 密钥验证通过后保存到私密 Vault（0600），终端不显示
-
-### decrypt — 解密数据库
-
-```bash
-python3 wecom_pro.py decrypt [--data-dir DIR]
-```
-
-读取密钥，解密所有数据库并合并 WAL，生成明文快照。不改源数据库。
-
-### sessions / contacts / history / search — 查询
-
-```bash
-python3 wecom_pro.py sessions [--query Q] [--limit 50]
-python3 wecom_pro.py contacts [--query Q] [--limit 100]
-python3 wecom_pro.py history "群名" [--start DATE] [--end DATE] [--limit 200]
-python3 wecom_pro.py search "关键词" [--chat "群名"] [--start DATE] [--limit 200]
-```
-
-### export — 导出聊天记录
-
-```bash
-python3 wecom_pro.py export "群名" \
-  [--format json|markdown|structured|html] \
-  [--limit 10000] [--output PATH]
-```
-
-| 格式 | 说明 |
+| 命令 | 作用 |
 |------|------|
-| `json` | 原始 JSON |
-| `markdown` | 基础 Markdown（vault_cli 原始格式） |
-| `structured` | **默认**。解析引用消息为引用块、日期分组、消息类型标识、图片 hash 清理 |
-| `html` | HTML 分析报告（Chart.js 可视化） |
-
-### analyze — 一键分析
-
-```bash
-python3 wecom_pro.py analyze "群名" [--limit 10000] [--output-dir DIR]
-```
-
-自动生成三个文件：
-- `<群名>_chat_records.json` — 原始数据
-- `<群名>_chat_records_structured.md` — 结构化 Markdown
-- `<群名>_analysis_report.html` — 可视化分析报告
-
-### status — 检查数据库状态
+| `status` / `discover` / `doctor` | 检查库、数据集、依赖。不附加进程 |
+| `capture-key` | 捕获密钥。方法见下表 |
+| `decrypt` | 解密并合并 WAL。`--key-file` `--no-wal` `--data-dir` |
+| `sessions` / `contacts` | 列出会话或联系人。`--query` `--snapshot` `--limit` |
+| `history "群名"` | 会话历史。`--start` `--end` `--snapshot` |
+| `search "关键词"` | 全文搜索。`--chat` `--start` `--end` `--snapshot` |
+| `export "群名"` | `structured`（默认）/ `json` / `markdown` / `html` |
+| `analyze "群名"` | 一次写出 JSON、结构化 Markdown、HTML |
 
 ```bash
-python3 wecom_pro.py status [--data-dir DIR] [--show-paths]
+python3 "$SKILL_DIR/scripts/wecom_pro.py" capture-key
+python3 "$SKILL_DIR/scripts/wecom_pro.py" decrypt
+python3 "$SKILL_DIR/scripts/wecom_pro.py" analyze "群名" --output-dir ~/output
 ```
 
-只检查，不附加进程。
+## 密钥捕获
 
-## 密钥捕获策略
+日常路径和显式路径分开。`auto` 不提权、不重签、不退出原客户端。
 
-| 方法 | 成功率 | 耗时 | 适用场景 |
-|------|--------|------|----------|
-| 标准 hooks | 中（需企微活跃解密） | 60s | 企微正在收发消息 |
-| 内存扫描 | 高（直接读进程内存） | 1-5min | 企微空闲、hooks 超时 |
+| `--method` | 何时用 | 默认会跑吗 |
+|---|---|---|
+| `auto` | 先 hooks 60 秒，失败再内存扫描 | 是 |
+| `hooks` | 企微正在收发，会触发解密 | 只在指定时 |
+| `memory-scan` | 企微空闲，hooks 抓不到 | 作为 auto 的第二步，或单独指定 |
+| `dbkey-scan` | 上面都失败，且用户同意输入管理员密码 | 否 |
+| `signed-copy` | 用户明确允许复制并重签一份企微副本 | 否 |
 
-`auto` 模式先 hooks 后扫描，覆盖大多数场景。Apple Silicon 上重签副本 spawn 可能失败，内存扫描是最可靠的 fallback。
+`--skip-hooks` 只影响 `auto`，让它直接做内存扫描。
 
-## 结构化导出
+`dbkey-scan` 只读 DbKeyManager，不注入代码；脚本会向本机要管理员密码。
 
-WeCom 引用回复原始存储格式：
+`signed-copy` 把副本写到私密 Vault 的 `apps/`，不改 `/Applications/企业微信.app`。若副本被单实例机制拉起后退出，让用户自己退出原客户端再重试。不点击 UI，不代登录。
 
-```
-"被引用者：被引用内容"
-------
-回复者
-回复内容
-```
+方法对比、表结构和引用消息格式见 [references/workflow.md](references/workflow.md)。库格式见 [references/database-notes.md](references/database-notes.md)。
 
-结构化后：
+## 多数据集
 
-```markdown
-#### 2026-04-24 16:28:06 · 陈丽茵
+本机可能同时有主库和 Backup。`status`、`capture-key`、`decrypt` 的 `--data-dir` 要传完整目录，不接受数据集 ID。
 
-> **杨攀：**
-> 照相亭，1票2件，航空箱包装...
->
-> *（被引用消息）*
+`sessions`、`contacts`、`history`、`search`、`export`、`analyze` 没有 `--data-dir`。多数据集时先对目标目录 `decrypt`，再把那次快照路径传给 `--snapshot`。
 
-SN318-加拿大-空运普货(含税)-卡派：头程￥58.5/KG...
-```
+快照默认在 `~/Library/Application Support/wecom-local-vault/snapshots/`，目录名是 `YYYYMMDD-HHMMSS-ffffff-<12位dataset_id>`。`~/.config/wecom-local-vault.json` 的 `vault_dir` 可以改这个根目录。
 
-同时处理：图片 hash → `[图片]`，截图文件名 → `[截图]`，系统消息 → 斜体，联系人名片 → 表格行，日期按天分组。
+`wecom_pro.py` 优先用 `~/.workbuddy/binaries/python/envs/default/bin/python3`。不要往系统 Python 里装依赖。
 
 ## 安全边界
 
-继承 `yichen-wecom-local-vault` 的全部强制边界：
+- 只读源数据库和 WAL，不写回企微容器
+- 不发送消息，不点击 UI，不重启客户端，不改原始应用包
+- 不关闭 SIP，不放宽系统 `taskport`
+- 密钥不打印；密钥、快照、导出权限 0600，拒绝覆盖已有文件
+- 回复和日志里不出现 raw key、完整账号目录、联系人内部 ID、整段私聊原文
+- 明文不要放进项目、桌面、云盘或 Git
 
-- 只读源数据库（`mode=ro`），不写回企微容器
-- 不发送企业微信消息，不点击 UI，不重启客户端
-- 密钥不显示在终端，文件权限 0600
-- 明文快照和导出文件权限 0600，拒绝覆盖已有文件
-- 不在回复或日志中显示 raw key、完整账号目录、联系人内部 ID
-- 明文数据不放进项目、桌面、云盘或 Git
-
-## 已知限制
-
-- 只处理本机已同步的消息；换设备后历史可能不全
-- 图片/语音/视频只输出类型占位，不解密媒体
-- 内存扫描速度取决于企微进程 RW 内存大小（典型 1-5 分钟）
-- 企微版本升级可能改变密钥调用或表结构；先运行 `status` 再处理真实数据
-
-## 架构
+## 布局
 
 ```
 wecom-chat-extractor/
-├── SKILL.md                    # 本文档
-├── scripts/
-│   ├── wecom_pro.py            # 统一 CLI（capture-key/decrypt/sessions/export/analyze）
-│   ├── key_memory_scan.py      # Frida 内存扫描（密钥捕获 fallback）
-│   ├── structured_export.py    # 结构化 Markdown 导出
-│   └── html_report.py          # HTML 分析报告生成
-└── references/
-    └── workflow.md             # 工作流详解（密钥策略、数据库结构、消息类型对照）
+├── SKILL.md
+├── references/
+│   ├── workflow.md
+│   └── database-notes.md
+└── scripts/
+    ├── wecom_pro.py
+    ├── key_memory_scan.py
+    ├── structured_export.py
+    ├── html_report.py
+    └── engine/                  # 上游引擎，见 scripts/engine/UPSTREAM.md
+        ├── vault_cli.py
+        ├── capture_key_macos.py
+        ├── scan_dbkey_manager_macos.py
+        ├── wecom_crypto.py
+        ├── wecom_common.py
+        └── test_wecom_local_vault.py
 ```
-
-核心解密/查询委托给 `yichen-wecom-local-vault` 的 `vault_cli.py`，本 skill 在其基础上增加三项能力：内存扫描密钥捕获、结构化 Markdown 导出、HTML 可视化报告。
 
 ## 验证
 
 ```bash
 cd "$SKILL_DIR/scripts"
-python3 -m py_compile *.py
+python3 -m py_compile *.py engine/*.py
+python3 engine/test_wecom_local_vault.py
 python3 wecom_pro.py --help
 python3 wecom_pro.py status
 ```
+
+`status` 只检查，不附加进程。
