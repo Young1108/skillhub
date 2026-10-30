@@ -1,6 +1,6 @@
 # skillhub — WorkBuddy Skill 工具集
 
-WorkBuddy 实用 Skill 集合：**账号迁移**（切账号后数据一键恢复）、**微信本地聊天数据提取与分析**（个人微信 Mac 4.x / 企业微信 Mac 5.x）、**Wake 多 Agent 会话日报**（读 wake.db 生成当日 Coding Agent 工作日报）、**本地音频转录**（Mac 上全本地 Whisper，录音转文字）、**需求调研材料汇总**（录音 + 在线文档 → 可评审的结构化调研总结）、**前沿阅读认知沉淀**（核对总结 → 修正表述 → 出平实文案 → 归档认知日志）、**Skill 全局分发**（一份 Skill 同步到本机全部 AI Agent）**Skill 沉淀判定**（收尾四问决定该不该写）、**Skill 复利迭代**（Skill 用完后复盘沉淀，账本 + 体检）。支持 [WorkBuddy](https://www.codebuddy.cn/)、[Codex](https://openai.com/index/introducing-codex/)、[Claude Code](https://claude.ai/code) 等支持 Skill 机制的 AI Agent 安装使用。
+WorkBuddy 实用 Skill 集合：**账号迁移**（切账号后数据一键恢复）、**微信本地聊天数据提取与分析**（个人微信 Mac 4.x / 企业微信 Mac 5.x）、**Wake 多 Agent 会话日报**（读 wake.db 生成当日 Coding Agent 工作日报）、**本地音频转录**（Mac 上全本地 Whisper，录音转文字）、**需求调研材料汇总**（录音 + 在线文档 → 可评审的结构化调研总结）、**前沿阅读认知沉淀**（核对总结 → 修正表述 → 出平实文案 → 归档认知日志）、**Skill 全局分发**（一份 Skill 同步到本机全部 AI Agent）**Skill 沉淀判定**（收尾四问决定该不该写）、**Skill 复利迭代**（Skill 用完后复盘沉淀，账本 + 体检）、**前端设计质量**（前端设计与评审：Mode 选择、渲染验收、去 AI 味，含 craft-floor 质量地板与 audit / critique 等命令）、**汇报写法**（按 ASD-STE100 原则写简化技术中文，固定状态词与验证四要素）。支持 [WorkBuddy](https://www.codebuddy.cn/)、[Codex](https://openai.com/index/introducing-codex/)、[Claude Code](https://claude.ai/code) 等支持 Skill 机制的 AI Agent 安装使用。
 
 > ⚠️ **微信相关 Skill 仅适用于 macOS**。Windows 用户请阅读 [Windows 用户说明](#windows-用户说明)。
 
@@ -150,6 +150,20 @@ node scripts/grab_text.mjs "<url>" out.txt [port] [maxRounds]
 | **yichen-wechat-local-vault** | 基础引擎：密钥提取（frida spawn）、全量/增量解密、查询、导出 | ⚠️ 外部开源，源自 [mcncarl/yichen-skills](https://github.com/mcncarl/yichen-skills/tree/main/yichen-wechat-local-vault) |
 | **wechat-local-vault-ops** | 运维手册：部署流程、首次抓 key 实战坑、日常运维 | 原创 |
 | **wechat-chat-extractor** | 增强工具：结构化 Markdown 导出、HTML 可视化报告、一键分析 | 原创（参照 wecom-chat-extractor 模式） |
+
+### 前端设计质量（第三方）
+
+| Skill | 定位 | 来源 |
+|-------|------|------|
+| **impeccable** | 前端设计与评审：Mode 选择（Persuade/Operate/Read/Experience）、渲染验收清单、浏览器默认面上色、去 AI 味禁令（kicker 小标签、渐变文字、玻璃装饰、emoji 冒充图标、硬偏移阴影）；含 craft-floor 质量地板与 audit / critique / polish / bolder 等命令 | 上游 [pbakaus/impeccable](https://github.com/pbakaus/impeccable)，Apache-2.0，正文未改 |
+
+> 上游 `scripts/bin/` 未入库（约 17MB 的 darwin-arm64 引擎二进制，首次运行时自动下载）。
+
+### 汇报写法（第三方）
+
+| Skill | 定位 | 来源 |
+|-------|------|------|
+| **ste** | 任务汇报与总结的简化技术中文规范（ASD-STE100 原则）：固定 10 个状态词、验证四要素（状态+方法+结果+范围）、句长上限、编号选项 | 上游 [dualface/ste-zh](https://github.com/dualface/ste-zh)，MIT，正文未改 |
 
 ## account-migrate — 账号迁移 Skill 详解
 
