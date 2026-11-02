@@ -301,6 +301,7 @@ cp -r /tmp/skillhub/wake-agent-daily-report ~/.workbuddy/skills/
 | Skill | 定位 | 来源 |
 |-------|------|------|
 | **wecom-chat-extractor** | 唯一入口：密钥捕获、解密、查询、结构化导出、HTML 报告。上游引擎在 `scripts/engine/`，不再单独安装 | 原创门面 + [mcncarl/yichen-skills](https://github.com/mcncarl/yichen-skills/tree/main/yichen-wecom-local-vault) 引擎 |
+| **wecom-emotion-migrate** | 表情包迁移：批量导出本机 Emotion 缓存（mapping.db 索引 → 带序号图片 + manifest.csv + HTML 预览页），换设备/换企业后按指引重新收藏；处理 db 锁、无扩展名文件、cover 封面等坑 | 原创 |
 
 > **`yichen-wechat-local-vault` 仍是独立的外部开源 Skill**，由 [mcncarl](https://github.com/mcncarl) 开发，遵循其原始 LICENSE。企业微信引擎已并入 `wecom-chat-extractor/scripts/engine/`，归档在 `archive/yichen-wecom-local-vault.merged-20261029/`，不要再单独安装。
 
