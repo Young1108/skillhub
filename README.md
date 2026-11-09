@@ -171,6 +171,12 @@ node scripts/grab_text.mjs "<url>" out.txt [port] [maxRounds]
 |-------|------|------|
 | **ste** | 任务汇报与总结的简化技术中文规范（ASD-STE100 原则）：固定 10 个状态词、验证四要素（状态+方法+结果+范围）、句长上限、编号选项 | 上游 [dualface/ste-zh](https://github.com/dualface/ste-zh)，MIT，正文未改 |
 
+### 技术方案与评审稿写作（公司制式）
+
+| Skill | 定位 | 来源 |
+|-------|------|------|
+| **writing-company-technical-proposals** | 仅在明确要求「公司格式/公司规范/公司模板」时启用：技术方案十一章骨架、技术评审稿十三节骨架（速览 → 评审重点 → 术语 → 状态与等待语义 → 埋点 → 风险与待确认）、中文论证顺序与措辞细则；含评审前检查清单与常见退化对照 | 原创 |
+
 ## account-migrate — 账号迁移 Skill 详解
 
 > WorkBuddy 切换账号后对话记录不见了？一键恢复。**零依赖**（Python 3.8+），macOS 实测，支持 WorkBuddy / Codex / Claude Code。
