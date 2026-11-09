@@ -143,6 +143,12 @@ node scripts/grab_text.mjs "<url>" out.txt [port] [maxRounds]
 | 把空壳文档算作已完成阶段 | 空壳 = 该阶段没发生，交付物必须写「实际只到 X 阶段」 |
 | 用常识填补转录缺口 | 远场录音必然有信息缺口，填空后当原话是硬伤 |
 
+### 已登录态网页调研（CDP）
+
+| Skill | 定位 | 来源 |
+|-------|------|------|
+| **logged-in-cdp-research** | 复用本机已登录浏览器态取数：拷 Chrome profile → 起 `--remote-debugging-port` 独立实例 → 验身份 → 按 401/404 判据摸接口 → 同源 fetch 取数或写数 → 收尾删 profile。附与 relay / 托管 Chromium / 桌面控制 / 官方 API 的取舍顺序与踩坑清单 | 原创 |
+
 ### 个人微信（Mac 4.x）
 
 | Skill | 定位 | 来源 |
